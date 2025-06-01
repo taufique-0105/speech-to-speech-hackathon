@@ -69,7 +69,7 @@ npm i
 - start dev server
 
 ```
-nodemon serer
+nodemon server
 ```
 
 ### Frontend
