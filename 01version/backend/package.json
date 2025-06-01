@@ -5,7 +5,8 @@
   "description": "First demo version of OdishaVox backend to convert the sarvam API response which is base64 to a playable audio file",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server"
   },
   "author": "Taufique Alam Ansari",
   "license": "ISC",
