@@ -12,6 +12,7 @@ import Home from "./components/Home";
 import TTSPlayer from "./components/TTSPlayer";
 import STTConverter from "./components/STTConverter";
 import Feedback from "./components/Feedback";
+import STSConverter from "./components/STSConverter";
 
 export default function App() {
 
@@ -26,6 +27,7 @@ export default function App() {
             <Stack.Screen name="TTS" component={TTSPlayer}/>
             <Stack.Screen name="STT" component={STTConverter}/>
             <Stack.Screen name="Feedback" component={Feedback}/>
+            <Stack.Screen name="STS" component={STSConverter}/>
           </Stack.Navigator>
         </NavigationContainer>
         <Footer />
