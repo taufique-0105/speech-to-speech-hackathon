@@ -5,6 +5,8 @@ import "dotenv/config";
 
 import textToSpeechRouter from "./api/v1/routes/textToSpeechRouter.js"
 import speechToTextRouter from "./api/v1/routes/speechToTextRouter.js";
+import speechToSpeechRouter from "./api/v1/routes/speechToSpeechRouter.js";
+import textToTextRouter from "./api/v1/routes/textToTextRouter.js";
 
 const app = express();
 const PORT = 3000;
@@ -20,6 +22,8 @@ app.get("/", (req, res) => {
 
 app.use('/api/v1/tts', textToSpeechRouter);
 app.use('/api/v1/stt', speechToTextRouter);
+app.use('/api/v1/sts', speechToSpeechRouter);
+app.use('/api/v1/ttt', textToTextRouter);
 
 // Start server
 app.listen(PORT, () => {

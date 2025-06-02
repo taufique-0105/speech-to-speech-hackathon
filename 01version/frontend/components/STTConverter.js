@@ -15,6 +15,7 @@ import {
   RecordingPresets,
   useAudioPlayer,
 } from "expo-audio";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const STTConverter = () => {
   const URL = "http://192.168.29.91:3000/api/v1/stt";
@@ -29,7 +30,7 @@ const STTConverter = () => {
     numberOfChannels: 1,
     bitRate: 128000,
   };
-  
+
   const audioRecorder = useAudioRecorder(recordingOptions);
   const [isRecording, setIsRecording] = useState(false);
   const [audioUri, setAudioUri] = useState(null);
@@ -65,7 +66,7 @@ const STTConverter = () => {
 
   const playAudio = async () => {
     if (!player || !audioUri || isPlaying) return;
-    
+
     try {
       setIsPlaying(true);
       player.play();
@@ -82,7 +83,7 @@ const STTConverter = () => {
       Alert.alert("Error", "No audio recording available");
       return;
     }
-    
+
     try {
       setIsLoading(true);
       setTranscription("");
@@ -90,11 +91,11 @@ const STTConverter = () => {
       const formData = new FormData();
       const file = {
         uri: uri,
-        type: 'audio/wav',
-        name: uri.split('/').pop() || 'recording.wav',
+        type: "audio/wav",
+        name: uri.split("/").pop() || "recording.wav",
       };
-      
-      formData.append('audio', file);
+
+      formData.append("audio", file);
 
       console.log(`Sending audio file to ${URL}`);
 
@@ -106,13 +107,13 @@ const STTConverter = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to convert speech to text");
       }
-      
+
       if (data.transcript) {
         const newMessage = {
           id: Date.now().toString(),
@@ -120,8 +121,8 @@ const STTConverter = () => {
           isUser: false,
           timestamp: new Date().toLocaleTimeString(),
         };
-        
-        setMessages(prev => [...prev, newMessage]);
+
+        setMessages((prev) => [...prev, newMessage]);
         setTranscription(data.transcript);
       } else {
         throw new Error("No transcription found in response");
@@ -136,7 +137,7 @@ const STTConverter = () => {
 
   useEffect(() => {
     let mounted = true;
-    
+
     (async () => {
       try {
         const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -159,38 +160,76 @@ const STTConverter = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Speech to Text Converter</Text>
-      
+
       <View style={styles.chatContainer}>
-        <ScrollView 
-          contentContainerStyle={styles.chatContent}
-          ref={scrollViewRef}
-          onContentSizeChange={() => 
-            scrollViewRef.current?.scrollToEnd({animated: true})
-          }
-        >
-          {messages.map((message) => (
-            <View 
-              key={message.id} 
-              style={[
-                styles.messageBubble, 
-                message.isUser ? styles.userBubble : styles.aiBubble
-              ]}
-            >
-              <Text style={message.isUser ? styles.userText : styles.aiText}>
-                {message.text + "  "}
+        {messages.length === 0 ? (
+          <View style={styles.emptyStateContainer}>
+            <MaterialIcons
+              name="record-voice-over"
+              size={80}
+              color="#6200ee"
+              style={styles.emptyIcon}
+            />
+            <Text style={styles.emptyTitle}>No recordings yet</Text>
+            <Text style={styles.emptySubtitle}>Try these actions: </Text>
+
+            <View style={styles.tipContainer}>
+              <MaterialIcons name="mic" size={20} color="#6200ee" />
+              <Text style={styles.tipText}>
+                Press the red button to start recording
               </Text>
-              <Text style={styles.timestamp}>{message.timestamp}</Text>
             </View>
-          ))}
-        </ScrollView>
+
+            <View style={styles.tipContainer}>
+              <MaterialIcons name="play-arrow" size={20} color="#6200ee" />
+              <Text style={styles.tipText}>
+                Play your recordings before converting
+              </Text>
+            </View>
+
+            <View style={styles.samplePrompts}>
+              <Text style={styles.sampleTitle}>Try saying:</Text>
+              <View style={styles.promptBubble}>
+                <Text style={styles.promptText}>
+                  "What's the weather today?"
+                </Text>
+              </View>
+              <View style={styles.promptBubble}>
+                <Text style={styles.promptText}>
+                  "Set a reminder for tomorrow"
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.chatContent}
+            ref={scrollViewRef}
+            onContentSizeChange={() =>
+              scrollViewRef.current?.scrollToEnd({ animated: true })
+            }
+          >
+            {messages.map((message) => (
+              <View
+                key={message.id}
+                style={[
+                  styles.messageBubble,
+                  message.isUser ? styles.userBubble : styles.aiBubble,
+                ]}
+              >
+                <Text style={message.isUser ? styles.userText : styles.aiText}>
+                  {message.text + "  "}
+                </Text>
+                <Text style={styles.timestamp}>{message.timestamp}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </View>
-      
+
       <View style={styles.buttonContainer}>
         <Pressable
-          style={[
-            styles.recordButton, 
-            isRecording && styles.recordingActive
-          ]}
+          style={[styles.recordButton, isRecording && styles.recordingActive]}
           onPress={isRecording ? stopRecording : record}
           disabled={isLoading}
         >
@@ -198,9 +237,12 @@ const STTConverter = () => {
             {isRecording ? "⏹ Stop" : "🎤 Record"}
           </Text>
         </Pressable>
-        
+
         <Pressable
-          style={[styles.actionButton, (!audioUri || isPlaying) && styles.disabledButton]}
+          style={[
+            styles.actionButton,
+            (!audioUri || isPlaying) && styles.disabledButton,
+          ]}
           onPress={playAudio}
           disabled={!audioUri || isPlaying || isLoading}
         >
@@ -208,9 +250,12 @@ const STTConverter = () => {
             {isPlaying ? "🔊 Playing..." : "▶️ Play"}
           </Text>
         </Pressable>
-        
+
         <Pressable
-          style={[styles.actionButton, (!audioUri || isLoading) && styles.disabledButton]}
+          style={[
+            styles.actionButton,
+            (!audioUri || isLoading) && styles.disabledButton,
+          ]}
           onPress={() => speechToText(audioUri)}
           disabled={!audioUri || isLoading}
         >
@@ -219,7 +264,7 @@ const STTConverter = () => {
           </Text>
         </Pressable>
       </View>
-      
+
       {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6200ee" />
@@ -235,6 +280,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
     padding: 16,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyIcon: {
+    opacity: 0.2,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#6200ee",
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: "#757575",
+    marginBottom: 20,
+  },
+  tipContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+    width: "100%",
+    paddingHorizontal: 20,
+  },
+  tipText: {
+    marginLeft: 10,
+    color: "#333",
+    fontSize: 14,
+  },
+  samplePrompts: {
+    marginTop: 30,
+    width: "100%",
+  },
+  sampleTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6200ee",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  promptBubble: {
+    backgroundColor: "#f0e5ff",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  promptText: {
+    color: "#6200ee",
+    fontStyle: "italic",
   },
   title: {
     fontSize: 24,

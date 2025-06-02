@@ -13,6 +13,7 @@ export function getTextToSpeech(req, res) {
 export async function postTextToSpeech(req, res) {
   const { text, target_language_code } = req.body;
 
+
   if (!text || !target_language_code) {
     return res.status(400).json({
       error: "Missing 'text' or 'target_language_code' in request body.",

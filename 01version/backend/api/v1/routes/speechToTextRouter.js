@@ -11,10 +11,7 @@ const upload = multer({
 });
 
 router.get("/", speechToTextController.getSpeechToText);
-router.post(
-  "/",
-  upload.single("audio"),
-  speechToTextController.postSpeechToText
-);
+router.post("/", upload.single("audio"), speechToTextController.postSpeechToText);
+
 
 export default router;
