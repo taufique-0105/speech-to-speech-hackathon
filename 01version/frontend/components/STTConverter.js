@@ -54,7 +54,7 @@ const STTConverter = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ audio_uri: uri }),
+        body: JSON.stringify({ audio: uri }),
       });
     }
     catch (error) {
