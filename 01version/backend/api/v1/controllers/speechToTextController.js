@@ -1,8 +1,4 @@
-import { FormData } from 'formdata-node';
-import { Blob } from 'fetch-blob';
-
-
-const API_SECRET = process.env.API_KEY;
+import { convertSpeechToText } from '../utils/convertSpeechToText.js'
 
 export const getSpeechToText = (req, res) => {
   res.json({
@@ -13,44 +9,36 @@ export const getSpeechToText = (req, res) => {
 };
 
 export const postSpeechToText = async (req, res) => {
-  const audioBuffer = req.file.buffer;
-  const mimetype = req.file.mimetype;
-  console.log("Received audio file:", req.file.originalname, "with mimetype:", mimetype);
-  console.log("Audio buffer length:", audioBuffer.length);
-  if (!audioBuffer) {
-    return res.status(400).json({ error: "Missing audio file in request." });
-  }
-
-  const formData = new FormData();
-  const blob = new Blob([audioBuffer], { type: mimetype });
-
-  formData.set('file', blob, req.file.originalname || 'audio.wav');
-  formData.set('model', 'saarika:flash');
-  formData.set('language_code', 'unknown');
-
   try {
-    const response = await fetch('https://api.sarvam.ai/speech-to-text', {
-      method: 'POST',
-      headers: {
-        'api-subscription-key': API_SECRET,
-        ...formData.headers,
-      },
-      body: formData
-    });
+    // Validate file upload
+    if (!req.file) {
+      return res.status(400).json({ error: "Missing audio file in request." });
+    }
 
-    const data = await response.json();
-    console.log("Data in response:",data)
+    // Call utility function - options are completely optional
+    // You can call it in any of these ways:
 
-    if (!response.ok) throw new Error(data.message || 'Speech-to-text failed');
+    // 1. Use all defaults:
+    const result = await convertSpeechToText(req.file);
 
-    res.json(data);
-  } catch (err) {
-    console.error("Error converting speech to text:", err);
-    res.status(500).json({ error: err.message });
+    // 2. Override only specific options:
+    // const result = await convertSpeechToText(req.file, { model: 'custom-model' });
+
+    // 3. Override multiple options:
+    // const result = await convertSpeechToText(req.file, {
+    //   model: 'custom-model',
+    //   languageCode: 'en-US'
+    // });
+
+    res.json(result);
+  } catch (error) {
+    console.error("Controller error:", error.message);
+
+    // Return appropriate HTTP status based on error type
+    const statusCode = error.message.includes('Missing audio file') ? 400 : 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
-
-
 
 export default {
   getSpeechToText,
