@@ -13,7 +13,7 @@ app.use(express.json());
 
 // Routes
 app.get("/", (req, res) => {
-  res.send("Hello, World!");
+  res.send("Hello, this is the API for OdiaAudioGen!");
 });
 
 app.get("/api/data", (req, res) => {

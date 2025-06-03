@@ -19,7 +19,7 @@ const Home = ({ navigation }) => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.appName}>OdishaVox</Text>
+          <Text style={styles.appName}>OdiaAudioGen</Text>
         </View>
 
         {/* Action Buttons */}
@@ -36,6 +36,13 @@ const Home = ({ navigation }) => {
             onPress={() => navigation.navigate("STT")}
           >
             <Text style={styles.buttonText}>Speech to Text</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.stsButton]}
+            onPress={() => navigation.navigate("STS")}
+          >
+            <Text style={styles.buttonText}>Speech to Speech</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -89,6 +96,9 @@ const styles = StyleSheet.create({
   },
   sttButton: {
     backgroundColor: "#34C759",
+  },
+  stsButton: {
+    backgroundColor: "#FF9500",
   },
   buttonText: {
     color: "white",
