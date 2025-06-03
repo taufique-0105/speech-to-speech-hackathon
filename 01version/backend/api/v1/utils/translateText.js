@@ -10,11 +10,9 @@ const SARVAM_TRANSLATE_API_URL = 'https://api.sarvam.ai/translate';
  * @returns {Promise<Object>} - API response data with translation details
  * @throws {Error} - If translation fails
  */
-export const translateText = async (text, options = {}) => {
-  const { 
-    targetLanguage = 'en-IN', 
-    sourceLanguage = 'auto' 
-  } = options;
+export const translateText = async ( text, targetLanguage ) => {
+
+  const sourceLanguage = 'auto';
 
   // Validate required parameters
   if (!text) {

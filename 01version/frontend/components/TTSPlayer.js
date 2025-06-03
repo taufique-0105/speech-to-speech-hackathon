@@ -25,7 +25,7 @@ const TTSComponent = ({ initialText = "" }) => {
 
   const player = useAudioPlayer(audioUri);
 
-  const URI = "http://192.168.29.91:3000/api/v1/tts";
+  const URI = "http://192.168.29.201:3000/api/v1/tts";
 
   const languages = [
     { code: "en-IN", name: "English (India) " },

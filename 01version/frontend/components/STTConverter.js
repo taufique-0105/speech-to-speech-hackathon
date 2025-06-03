@@ -18,7 +18,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 
 const STTConverter = () => {
-  const URL = "http://192.168.29.91:3000/api/v1/stt";
+  const URL = "http://192.168.29.201:3000/api/v1/stt";
   const scrollViewRef = useRef();
 
   const recordingOptions = {
