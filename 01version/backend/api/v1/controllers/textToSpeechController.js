@@ -1,8 +1,8 @@
-const API_SECRET = process.env.API_KEY;
+import { convertTextToSpeech } from '../utils/convertTextToSpeech.js';
 
 export function getTextToSpeech(req, res) {
   res.json({
-    message: "This is the text-to-speech endpoint",
+    message: "This is the NEW text-to-speech endpoint",
     data: {
       text: "Hello, this is a sample text for TTS.",
       target_language_code: "en-US",
@@ -11,47 +11,44 @@ export function getTextToSpeech(req, res) {
 }
 
 export async function postTextToSpeech(req, res) {
-  const { text, target_language_code } = req.body;
-
-
-  if (!text || !target_language_code) {
-    return res.status(400).json({
-      error: "Missing 'text' or 'target_language_code' in request body.",
-    });
-  }
-
   try {
-    const response = await fetch("https://api.sarvam.ai/text-to-speech", {
-      method: "POST",
-      headers: {
-        "api-subscription-key": API_SECRET, // Use env in prod
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text,
-        target_language_code,
-      }),
-    });
+    const { text, target_language_code } = req.body;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ error: errorText });
+    // Validate required fields
+    if (!text || !target_language_code) {
+      return res.status(400).json({
+        error: "Missing 'text' or 'target_language_code' in request body.",
+      });
     }
 
-    const ttsResult = await response.json();
-
-    // Validate structure before sending to frontend
-    if (!ttsResult.audios || !Array.isArray(ttsResult.audios)) {
-      return res.status(500).json({ error: "Invalid TTS response structure" });
-    }
-
-    res.json({
-      request_id: ttsResult.request_id || "unknown",
-      audios: ttsResult.audios,
+    // Call utility function
+    // You can call it in different ways:
+    
+    // 1. Basic usage:
+    const result = await convertTextToSpeech(text, { 
+      targetLanguageCode: target_language_code 
     });
+    
+    // 2. With additional options (if API supports them):
+    // const result = await convertTextToSpeech(text, { 
+    //   targetLanguageCode: target_language_code,
+		//   model: bulbul:v1 or bulbul:v2
+    // });
+
+    res.json(result);
+
   } catch (error) {
-    console.error("Error calling TTS API:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Controller error:", error.message);
+    
+    // Return appropriate HTTP status based on error type
+    let statusCode = 500;
+    if (error.message.includes('required')) {
+      statusCode = 400;
+    } else if (error.message.includes('API_SECRET')) {
+      statusCode = 500;
+    }
+
+    res.status(statusCode).json({ error: error.message });
   }
 }
 

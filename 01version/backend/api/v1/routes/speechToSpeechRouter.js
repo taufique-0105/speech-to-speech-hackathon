@@ -1,6 +1,6 @@
 import express from 'express';
-import speechToSpeechController from '../controllers/speechToSpeechController.js';
 import multer from 'multer';
+import speechToSpeechController from '../controllers/speechToSpeechController.js';
 
 const router = express.Router();
 const upload = multer({
