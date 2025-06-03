@@ -29,7 +29,7 @@ export const postSpeechToSpeech = async (req, res) => {
 			originalAudio: req.file.originalname,
 			transcript: speechResult.transcript,
 			translation: translationResult.translation,
-			audio: ttsResult.audios,
+			audio: ttsResult.audios[0],
 			pipeline: {
 				sourceLanguage: translationResult.sourceLanguage,
 				targetLanguage: translationResult.targetLanguage
