@@ -25,10 +25,11 @@ export const postSpeechToSpeech = async (req, res) => {
 		});
 
 		res.json({
+      message: "Speech to Speech conversion successful",
 			originalAudio: req.file.originalname,
 			transcript: speechResult.transcript,
 			translation: translationResult.translation,
-			translatedAudio: ttsResult.audios,
+			audio: ttsResult.audios,
 			pipeline: {
 				sourceLanguage: translationResult.sourceLanguage,
 				targetLanguage: translationResult.targetLanguage

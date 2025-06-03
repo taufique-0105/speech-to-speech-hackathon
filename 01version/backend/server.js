@@ -9,7 +9,7 @@ import speechToSpeechRouter from "./api/v1/routes/speechToSpeechRouter.js";
 import textToTextRouter from "./api/v1/routes/textToTextRouter.js";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT;
 
 // Middleware
 app.use(cors());

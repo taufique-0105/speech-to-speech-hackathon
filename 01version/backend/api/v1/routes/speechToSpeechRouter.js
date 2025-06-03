@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import speechToSpeechController from '../controllers/speechToSpeechController.js'
+import speechToSpeechController from '../controllers/speechToSpeechController.js';
 
 const router = express.Router();
 const upload = multer({
@@ -10,8 +10,7 @@ const upload = multer({
   },
 });
 
-
 router.get('/', speechToSpeechController.getSpeechToSpeech);
-router.post('/', upload.single('audio'), speechToSpeechController.postSpeechToSpeech);
+router.post('/', upload.single("audio"), speechToSpeechController.postSpeechToSpeech);
 
 export default router;
