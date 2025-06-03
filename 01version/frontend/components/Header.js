@@ -1,7 +1,9 @@
 import { View, TouchableOpacity, Image, StyleSheet, SafeAreaView, Platform, StatusBar } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {useNavigation} from '@react-navigation/native';
 
-const Header = ({ navigation }) => {
+const Header = () => {
+	const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar></StatusBar>

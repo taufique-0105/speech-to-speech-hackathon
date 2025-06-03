@@ -22,9 +22,9 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.appContainer}>
-        <Header />
         
         <NavigationContainer>
+        <Header />
           <View style={styles.contentContainer}>
             <Stack.Navigator 
               initialRouteName="Home" 
