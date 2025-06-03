@@ -12,7 +12,7 @@ const SARVAM_TTS_API_URL = 'https://api.sarvam.ai/text-to-speech';
  */
 export const convertTextToSpeech = async (text, options = {}) => {
   const { targetLanguageCode,
-		model='bulbul:v1', 
+		model='bulbul:v2',
 //		...additionalOptions
 	} = options;
 
