@@ -1,22 +1,20 @@
-# OdiaAudioGen
-
+# OdishaVox
 ## Stack
-
 - React-native
 - Expo
 - Expressjs
+- MongoDB
 
 ## Getting started
-
 ### Pre-requisits
-
 - nodejs
 - npm
 - API_KEY, get a subscription key from [SARVAM AI](https://dashbord.sarvam.ai).
+- Create a cluster in mongodb and get the connection String [MongoDB](https://www.mongodb.com/)
 
 ## Install nodejs
 
-### Windows 10/11
+### Windows 10/11 
 
 Download the [Windows Installer](https://nodejs.org/en/download) directly from the [nodejs.org](https://nodejs.org/en/#home-downloadhead) web site.
 
@@ -41,23 +39,22 @@ brew install node
 ## Clone the repo
 
 ```
-git clone https://github.com/taufique-0105/speech-to-speech-hackathon.git
+git clone https://github.com/taufique-0105/OdishaVox.git
 ```
 
 ## Starting dev sever
-
 ### Backend
-
-- move to the backend dir
+- Move to the backend dir
 
 ```
 cd backend
 ```
 
-- put your api key in .env file
-
+- Create a .env file in the backend folder
 ```
-echo "API_KEY=<paste your api key here>" > .env
+API_KEY="<YOUR_API_KEY>"
+PORT=3000
+MONGODB_URI=<MONGODB_URL>
 ```
 
 - install dependencies
@@ -66,30 +63,37 @@ echo "API_KEY=<paste your api key here>" > .env
 npm i
 ```
 
-- start dev server
-
+- install nodemon
 ```
-nodemon server
+npm i -g nodemon
+```
+
+- start dev server
+```
+nodemon serer
 ```
 
 ### Frontend
-
-- move to the frontend dir
+- Move to the frontend dir
 
 - In TTSPlayer.js add your IP address in line number 23
-
+ 
 ```
 cd frontend
 ```
-
-- install dependencies
+- Install dependencies
 
 ```
 npm i
 ```
 
-- start dev server
+### Add your current IP Address on 
+#### 01version/frontend/components/Feedback.js
+#### 01version/frontend/components/STSConverter.js
+#### 01version/frontend/components/STTConverter.js
+#### 01version/frontend/components/TTSPlayer.js
 
+- Start dev server
 ```
 npx expo start
 ```
@@ -99,14 +103,3 @@ npx expo start
 - Download Expo Go
 
 - Scan the QR in Expo Go to get started
-
-## Instruction for Contribution
-
-- Go to github repo
-- Click on fork
-- Clone the code repo to your machine
-- Edit the local repo
-- Test changes
-- Push code into your repo
-- Click on compare and create a pull request
-- After creating a pull request assign someone for reviewing the code
