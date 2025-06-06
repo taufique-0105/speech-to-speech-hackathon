@@ -24,7 +24,7 @@ const STSConverter = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const API_URL = "http://192.168.29.201:3000/api/v1/sts";
+  const API_URL = "http://<YOUR_IP_ADDRESS>:3000/api/v1/sts";
   const player = useAudioPlayer(transcriptAudioUri);
 
   const recordingOptions = {

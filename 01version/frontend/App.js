@@ -85,12 +85,3 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 });
-
-// Add this for type checking if using TypeScript
-// type RootStackParamList = {
-//   Home: undefined;
-//   TTS: undefined;
-//   STT: undefined;
-//   Feedback: undefined;
-//   STS: undefined;
-// };

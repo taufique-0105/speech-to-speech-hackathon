@@ -10,6 +10,7 @@ import {
   Animated,
   Easing
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -18,27 +19,34 @@ const Home = ({ navigation }) => {
   const buttonScale = new Animated.Value(1);
   const logoOpacity = new Animated.Value(0);
   const buttonTranslateY = new Animated.Value(30);
+  const titleScale = new Animated.Value(0.9);
 
   React.useEffect(() => {
     // Logo fade-in animation
-    Animated.timing(logoOpacity, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
-
-    // Button slide-up animation
-    Animated.timing(buttonTranslateY, {
-      toValue: 0,
-      duration: 600,
-      easing: Easing.out(Easing.exp),
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(titleScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonTranslateY, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+        delay: 200
+      })
+    ]).start();
   }, []);
 
   const handlePressIn = () => {
     Animated.spring(buttonScale, {
-      toValue: 0.95,
+      toValue: 0.96,
       useNativeDriver: true,
     }).start();
   };
@@ -53,107 +61,150 @@ const Home = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        {/* Logo & App Name */}
-        <View style={styles.headerContainer}>
-          <Animated.Image
-            source={require("../assets/download.png")}
-            style={[styles.logo, { opacity: logoOpacity }]}
-            resizeMode="contain"
-          />
-          <Animated.Text style={[styles.appName, { opacity: logoOpacity }]}>
-            OdiaAudioGen
-          </Animated.Text>
-          <Text style={styles.tagline}>Your Odia Voice Assistant</Text>
+    <LinearGradient 
+      colors={['#f9f9ff', '#eef2ff']} 
+      style={styles.gradient}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
+          {/* Logo & App Name */}
+          <View style={styles.headerContainer}>
+            <Animated.Image
+              source={require("../assets/download.png")}
+              style={[styles.logo, { 
+                opacity: logoOpacity,
+                transform: [{ scale: logoOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.8, 1]
+                })}]
+              }]}
+              resizeMode="contain"
+            />
+            <Animated.Text style={[
+              styles.appName, 
+              { 
+                opacity: logoOpacity,
+                transform: [{ scale: titleScale }]
+              }
+            ]}>
+              OdishaVox
+            </Animated.Text>
+            <Animated.Text style={[
+              styles.tagline, 
+              { 
+                opacity: logoOpacity,
+                transform: [{ translateY: logoOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 0]
+                })}]
+              }
+            ]}>
+              Your Odia Voice Companion
+            </Animated.Text>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.buttonContainer}>
+            <Animated.View style={{ 
+              transform: [{ translateY: buttonTranslateY }],
+              opacity: buttonTranslateY.interpolate({
+                inputRange: [0, 30],
+                outputRange: [1, 0]
+              })
+            }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={() => navigation.navigate("TTS")}
+              >
+                <LinearGradient
+                  colors={['#4a6cf7', '#6a8eff']}
+                  style={[styles.button, styles.buttonElevation]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+                    <Text style={styles.buttonText}>Text to Speech</Text>
+                    <Text style={styles.buttonSubtext}>Convert Odia text to natural speech</Text>
+                  </Animated.View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={{ 
+              transform: [{ translateY: buttonTranslateY }],
+              opacity: buttonTranslateY.interpolate({
+                inputRange: [0, 30],
+                outputRange: [1, 0]
+              })
+            }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={() => navigation.navigate("STT")}
+              >
+                <LinearGradient
+                  colors={['#00b894', '#55efc4']}
+                  style={[styles.button, styles.buttonElevation]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+                    <Text style={styles.buttonText}>Speech to Text</Text>
+                    <Text style={styles.buttonSubtext}>Transcribe Odia speech to text</Text>
+                  </Animated.View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={{ 
+              transform: [{ translateY: buttonTranslateY }],
+              opacity: buttonTranslateY.interpolate({
+                inputRange: [0, 30],
+                outputRange: [1, 0]
+              })
+            }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={() => navigation.navigate("STS")}
+              >
+                <LinearGradient
+                  colors={['#ff7675', '#fd79a8']}
+                  style={[styles.button, styles.buttonElevation]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+                    <Text style={styles.buttonText}>Speech to Speech</Text>
+                    <Text style={styles.buttonSubtext}>Convert Odia speech to different voice</Text>
+                  </Animated.View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <Animated.View style={{ 
-            transform: [{ translateY: buttonTranslateY }],
-            opacity: buttonTranslateY.interpolate({
-              inputRange: [0, 30],
-              outputRange: [1, 0]
-            })
-          }}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              onPress={() => navigation.navigate("TTS")}
-            >
-              <Animated.View style={[
-                styles.button, 
-                styles.ttsButton,
-                { transform: [{ scale: buttonScale }] }
-              ]}>
-                <Text style={styles.buttonText}>Text to Speech</Text>
-                <Text style={styles.buttonSubtext}>Convert Odia text to natural speech</Text>
-              </Animated.View>
-            </TouchableOpacity>
-          </Animated.View>
-
-          <Animated.View style={{ 
-            transform: [{ translateY: buttonTranslateY }],
-            opacity: buttonTranslateY.interpolate({
-              inputRange: [0, 30],
-              outputRange: [1, 0]
-            })
-          }}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              onPress={() => navigation.navigate("STT")}
-            >
-              <Animated.View style={[
-                styles.button, 
-                styles.sttButton,
-                { transform: [{ scale: buttonScale }] }
-              ]}>
-                <Text style={styles.buttonText}>Speech to Text</Text>
-                <Text style={styles.buttonSubtext}>Transcribe Odia speech to text</Text>
-              </Animated.View>
-            </TouchableOpacity>
-          </Animated.View>
-
-          <Animated.View style={{ 
-            transform: [{ translateY: buttonTranslateY }],
-            opacity: buttonTranslateY.interpolate({
-              inputRange: [0, 30],
-              outputRange: [1, 0]
-            })
-          }}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              onPress={() => navigation.navigate("STS")}
-            >
-              <Animated.View style={[
-                styles.button, 
-                styles.stsButton,
-                { transform: [{ scale: buttonScale }] }
-              ]}>
-                <Text style={styles.buttonText}>Speech to Speech</Text>
-                <Text style={styles.buttonSubtext}>Convert Odia speech to different voice</Text>
-              </Animated.View>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   scrollContainer: {
     flexGrow: 1,
+    paddingBottom: 20,
   },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     justifyContent: "space-between",
     paddingVertical: 40,
     minHeight: '100%',
@@ -165,56 +216,60 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   logo: {
-    width: 180,
-    height: 180,
+    width: 160,
+    height: 160,
     marginBottom: 15,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    padding: 10,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#007AFF",
-    marginBottom: 5,
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#2d3748",
+    marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   tagline: {
     fontSize: 16,
-    color: "#666",
+    color: "#4a5568",
     marginBottom: 30,
     textAlign: 'center',
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   buttonContainer: {
-    paddingHorizontal: 30,
-    marginBottom: 40,
+    paddingHorizontal: 25,
+    marginBottom: 20,
   },
   button: {
-    paddingVertical: 20,
+    paddingVertical: 22,
     paddingHorizontal: 25,
-    borderRadius: 15,
-    marginVertical: 12,
+    borderRadius: 14,
+    marginVertical: 10,
+  },
+  buttonElevation: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  ttsButton: {
-    backgroundColor: "#007AFF",
-  },
-  sttButton: {
-    backgroundColor: "#34C759",
-  },
-  stsButton: {
-    backgroundColor: "#FF9500",
+    shadowRadius: 10,
+    elevation: 8,
   },
   buttonText: {
     color: "white",
     fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 5,
+    fontWeight: "700",
+    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   buttonSubtext: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.85)",
     fontSize: 14,
+    fontWeight: "500",
   },
 });
 
