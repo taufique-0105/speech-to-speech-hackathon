@@ -54,7 +54,6 @@ export default function App() {
               </Stack.Navigator>
             </View>
           </NavigationContainer>
-          <Footer />
         </View>
       </SafeAreaView>
     </ThemeProvider>

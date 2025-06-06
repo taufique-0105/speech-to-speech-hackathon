@@ -11,6 +11,7 @@ import {
   Easing
 } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
+import Footer from './Footer';
 
 const { width } = Dimensions.get('window');
 
@@ -190,6 +191,7 @@ const Home = ({ navigation }) => {
             </Animated.View>
           </View>
         </View>
+        <Footer/>
       </ScrollView>
     </LinearGradient>
   );
@@ -201,13 +203,12 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 20,
+    justifyContent: 'space-between', // Add this
   },
   container: {
     flex: 1,
-    justifyContent: "space-between",
     paddingVertical: 40,
-    minHeight: '100%',
+    paddingHorizontal: 20,
   },
   headerContainer: {
     flex: 1,
@@ -219,7 +220,6 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     marginBottom: 15,
-    borderRadius: 30,
     backgroundColor: 'rgba(255,255,255,0.3)',
     padding: 10,
   },
