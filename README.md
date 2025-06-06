@@ -70,7 +70,7 @@ npm i -g nodemon
 
 - start dev server
 ```
-nodemon serer
+nodemon server.js
 ```
 
 ### Frontend
