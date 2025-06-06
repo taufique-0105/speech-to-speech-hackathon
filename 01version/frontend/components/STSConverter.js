@@ -62,7 +62,6 @@ const STSConverter = () => {
       player.replace(uri);
       player.play();
       setCurrentlyPlaying(uri);
-      player.duration()
     } catch (error) {
       console.error("Playback error:", error);
       Alert.alert("Playback Error", "Failed to play the audio");
