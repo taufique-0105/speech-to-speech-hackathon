@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "OdishaVox",
-    "slug": "OdishaVox",
+    "slug": "Your Odia Voice Companion",
+    "description": "A voice assistant app for Odia speakers, providing local news, weather updates, and more.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
