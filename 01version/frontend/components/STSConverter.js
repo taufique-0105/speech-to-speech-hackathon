@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -19,13 +20,17 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 const STSConverter = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUri, setAudioUri] = useState(null);
-  const [transcriptAudioUri, setTranscriptAudioUri] = useState(null);
   const [hasPermission, setHasPermission] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
 
-  const API_URL = "http://<YOUR_IP_ADDRESS>:3000/api/v1/sts";
-  const player = useAudioPlayer(transcriptAudioUri);
+  // Create a single audio player instance
+  const player = useAudioPlayer(null);
+
+  // Use your computer's IP if testing on physical device
+  // Or 'localhost' if using emulator with adb reverse
+  const API_URL = "http://localhost:3000/api/v1/sts";
 
   const recordingOptions = {
     ...RecordingPresets.HIGH_QUALITY,
@@ -39,13 +44,41 @@ const STSConverter = () => {
 
   const audioRecorder = useAudioRecorder(recordingOptions);
 
+  const playing = async (uri) => {
+    try {
+      // If already playing this URI, stop it
+      if (currentlyPlaying === uri) {
+        player.pause();
+        setCurrentlyPlaying(null);
+        return;
+      }
+
+      // If playing something else, stop it first
+      if (currentlyPlaying) {
+        player.pause();
+      }
+
+      // Load and play the new audio
+      player.replace(uri);
+      player.play();
+      setCurrentlyPlaying(uri);
+    } catch (error) {
+      console.error("Playback error:", error);
+      Alert.alert("Playback Error", "Failed to play the audio");
+      setCurrentlyPlaying(null);
+    }
+  };
+
   useEffect(() => {
     const requestPermission = async () => {
       try {
         const status = await AudioModule.requestRecordingPermissionsAsync();
         setHasPermission(status.granted);
         if (!status.granted) {
-          Alert.alert("Permission Denied", "Microphone access is required for this app to work.");
+          Alert.alert(
+            "Permission Denied",
+            "Microphone access is required for this app to work."
+          );
         }
       } catch (error) {
         console.error("Permission error:", error);
@@ -59,8 +92,8 @@ const STSConverter = () => {
       if (isRecording) {
         audioRecorder.stop();
       }
-      if (isPlaying) {
-        player.stop();
+      if (currentlyPlaying) {
+        player.pause();
       }
     };
   }, []);
@@ -77,14 +110,16 @@ const STSConverter = () => {
     try {
       setIsLoading(false);
       setAudioUri(null);
-      setTranscriptAudioUri(null);
-      
+
       await audioRecorder.prepareToRecordAsync();
       await audioRecorder.record();
       setIsRecording(true);
     } catch (error) {
       console.error("Recording error:", error);
-      Alert.alert("Recording Failed", error.message || "Failed to start recording");
+      Alert.alert(
+        "Recording Failed",
+        error.message || "Failed to start recording"
+      );
     }
   };
 
@@ -92,17 +127,30 @@ const STSConverter = () => {
     try {
       await audioRecorder.stop();
       const uri = audioRecorder.uri;
-      
+
       if (!uri) {
         throw new Error("No audio file was recorded");
       }
-      
+
       setAudioUri(uri);
       setIsRecording(false);
+
+      // Add the recorded message to the messages array
+      const newMessage = {
+        id: Date.now().toString(),
+        uri: uri,
+        type: "sent",
+        timestamp: new Date(),
+      };
+
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
       console.log("Recording saved at", uri);
     } catch (error) {
       console.error("Stop recording error:", error);
-      Alert.alert("Recording Failed", error.message || "Failed to stop recording");
+      Alert.alert(
+        "Recording Failed",
+        error.message || "Failed to stop recording"
+      );
     }
   };
 
@@ -151,31 +199,50 @@ const STSConverter = () => {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      setTranscriptAudioUri(fileUri);
+      // Add the received message to the messages array
+      const newMessage = {
+        id: Date.now().toString(),
+        uri: fileUri,
+        type: "received",
+        timestamp: new Date(),
+      };
+
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
       console.log("Processed audio saved at", fileUri);
     } catch (error) {
       console.error("API Error:", error);
-      Alert.alert("Processing Error", error.message || "Failed to process audio");
+      Alert.alert(
+        "Processing Error",
+        error.message || "Failed to process audio"
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePlay = async () => {
-    if (!transcriptAudioUri) {
-      Alert.alert("No Audio", "No processed audio available to play.");
-      return;
-    }
-
-    try {
-      setIsPlaying(true);
-      await player.play();
-    } catch (error) {
-      console.error("Playback error:", error);
-      Alert.alert("Playback Error", "Failed to play the audio");
-    } finally {
-      setIsPlaying(false);
-    }
+  const renderMessage = ({ item }) => {
+    return (
+      <View
+        style={[
+          styles.messageContainer,
+          item.type === "sent" ? styles.sentMessage : styles.receivedMessage,
+        ]}
+      >
+        <Pressable style={styles.playButton} onPress={() => playing(item.uri)}>
+          <Ionicons
+            name={currentlyPlaying === item.uri ? "pause" : "play"}
+            size={24}
+            color="white"
+          />
+        </Pressable>
+        <Text style={styles.messageTime}>
+          {item.timestamp.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      </View>
+    );
   };
 
   if (hasPermission === false) {
@@ -193,8 +260,15 @@ const STSConverter = () => {
       <Text style={styles.title}>Speech to Speech</Text>
       <Text style={styles.subtitle}>Record, convert, and play audio</Text>
 
-      <View style={styles.waveformPlaceholder}>
-        {isRecording && <View style={styles.recordingIndicator} />}
+      {/* Messages display area */}
+      <View style={styles.messagesContainer}>
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+          inverted
+        />
       </View>
 
       <View style={styles.mainButtonContainer}>
@@ -203,29 +277,27 @@ const STSConverter = () => {
             styles.recordButton,
             isRecording && styles.recordingButton,
             pressed && styles.buttonPressed,
-            hasPermission === false && styles.disabledButton
+            hasPermission === false && styles.disabledButton,
           ]}
           onPress={isRecording ? stopRecording : record}
           disabled={hasPermission === false}
         >
-          <Ionicons 
-            name={isRecording ? "stop" : "mic"} 
-            size={32} 
-            color="white" 
+          <Ionicons
+            name={isRecording ? "stop" : "mic"}
+            size={32}
+            color="white"
           />
           <Text style={styles.recordButtonText}>
             {isRecording ? "Stop Recording" : "Start Recording"}
           </Text>
         </Pressable>
-      </View>
 
-      <View style={styles.actionButtonsContainer}>
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
             styles.sendButton,
             (!audioUri || isRecording) && styles.disabledButton,
-            pressed && styles.buttonPressed
+            pressed && styles.buttonPressed,
           ]}
           onPress={speechToSpeech}
           disabled={!audioUri || isRecording || isLoading}
@@ -235,29 +307,8 @@ const STSConverter = () => {
           ) : (
             <>
               <Ionicons name="send" size={24} color="white" />
-              <Text style={styles.actionButtonText}>Convert</Text>
             </>
           )}
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.playButton,
-            !transcriptAudioUri && styles.disabledButton,
-            pressed && styles.buttonPressed
-          ]}
-          onPress={handlePlay}
-          disabled={!transcriptAudioUri || isPlaying}
-        >
-          <Ionicons 
-            name={isPlaying ? "pause" : "play"} 
-            size={24} 
-            color="white" 
-          />
-          <Text style={styles.actionButtonText}>
-            {isPlaying ? "Playing..." : "Play"}
-          </Text>
         </Pressable>
       </View>
     </View>
@@ -281,16 +332,53 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: "#666",
-    marginBottom: 40,
+    marginBottom: 20,
+  },
+  messagesContainer: {
+    flex: 1,
+    width: "100%",
+    marginBottom: 20,
+    backgroundColor: "#ff6b6b20",
+    borderRadius: 30,
+    padding: 20
+  },
+  messagesList: {
+    paddingBottom: 20,
+  },
+  messageContainer: {
+    maxWidth: "70%",
+    padding: 12,
+    borderRadius: 18,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sentMessage: {
+    alignSelf: "flex-end",
+    backgroundColor: "#4263eb",
+  },
+  receivedMessage: {
+    alignSelf: "flex-start",
+    backgroundColor: "#7048e8",
+  },
+  playButton: {
+    padding: 8,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  messageTime: {
+    color: "white",
+    fontSize: 12,
+    opacity: 0.8,
   },
   waveformPlaceholder: {
     width: "100%",
-    height: 120,
+    height: 80,
     backgroundColor: "#e9ecef",
     borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 20,
     overflow: "hidden",
   },
   recordingIndicator: {
@@ -300,7 +388,9 @@ const styles = StyleSheet.create({
   },
   mainButtonContainer: {
     width: "100%",
-    marginBottom: 30,
+    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-evenly",
   },
   recordButton: {
     backgroundColor: "#4263eb",
@@ -325,17 +415,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  actionButtonsContainer: {
-    flexDirection: "row",
-    gap: 20,
-    width: "100%",
-    justifyContent: "center",
-  },
   actionButton: {
     flex: 1,
-    maxWidth: 150,
+    maxWidth: 80,
     paddingVertical: 15,
-    borderRadius: 12,
+    borderRadius: 60,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -347,10 +431,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   sendButton: {
-    backgroundColor: "#37b24d",
-  },
-  playButton: {
-    backgroundColor: "#7048e8",
+    backgroundColor: "#37b24b",
   },
   actionButtonText: {
     color: "white",

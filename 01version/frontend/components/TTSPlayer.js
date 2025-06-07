@@ -25,7 +25,10 @@ const TTSComponent = ({ initialText = "" }) => {
 
   const player = useAudioPlayer(audioUri);
 
-  const URI = "http://<YOUR_IP_ADDRESS>:3000/api/v1/tts";
+
+  // Use your computer's IP if testing on physical device
+        // Or 'localhost' if using emulator with adb reverse
+  const URI = "http://localhost:3000/api/v1/tts";
 
   const languages = [
     { code: "en-IN", name: "English (India) " },

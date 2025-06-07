@@ -18,7 +18,10 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 
 const STTConverter = () => {
-  const URL = "http://<YOUR_IP_ADDRESS>:3000/api/v1/stt";
+
+  // Use your computer's IP if testing on physical device
+        // Or 'localhost' if using emulator with adb reverse
+  const URL = "http://localhost:3000/api/v1/stt";
   const scrollViewRef = useRef();
 
   const recordingOptions = {

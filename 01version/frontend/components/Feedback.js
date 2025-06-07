@@ -79,7 +79,7 @@ const Feedback = () => {
       if (validateForm()) {
         // Use your computer's IP if testing on physical device
         // Or 'localhost' if using emulator with adb reverse
-        const response = await fetch("http://<YOUR_IP_ADDRESS>:3000/api/v1/feedback/submit", {
+        const response = await fetch("http://localhost:3000/api/v1/feedback/submit", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
