@@ -18,10 +18,6 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 
 const STTConverter = () => {
-
-  // Use your computer's IP if testing on physical device
-        // Or 'localhost' if using emulator with adb reverse
-  const URL = "http://localhost:3000/api/v1/stt";
   const scrollViewRef = useRef();
 
   const recordingOptions = {
@@ -86,6 +82,8 @@ const STTConverter = () => {
       Alert.alert("Error", "No audio recording available");
       return;
     }
+
+    const URL = process.env.EXPO_PUBLIC_STT_URL;
 
     try {
       setIsLoading(true);
