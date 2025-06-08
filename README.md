@@ -95,11 +95,7 @@ npm i
 - If you're using emulator use localhost
 
 ```
-echo "EXPO_PUBLIC_TTS_URL=http://localhost:3000/api/v1/tts
-EXPO_PUBLIC_FEEDBACK_URL=http://localhost:3000/api/v1/feedback/submit
-EXPO_PUBLIC_TTS_URL=http://localhost:3000/api/v1/tts
-EXPO_PUBLIC_STT_URL=http://localhost:3000/api/v1/stt
-EXPO_PUBLIC_STS_URL=http://localhost:3000/api/v1/sts" > .env
+echo "EXPO_PUBLIC_URL=http://localhost:3000" > .env
 ```
 
 - Start dev server

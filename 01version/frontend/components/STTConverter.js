@@ -78,63 +78,66 @@ const STTConverter = () => {
   };
 
   const speechToText = async (uri) => {
-    if (!uri) {
-      Alert.alert("Error", "No audio recording available");
-      return;
+  if (!uri) {
+    Alert.alert("Error", "No audio recording available");
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    setTranscription("");
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('audio', {
+      uri: uri,
+      type: 'audio/wav',  // or 'audio/x-wav'
+      name: 'recording.wav',
+    });
+
+    // Use the full URL from your environment variable directly
+    const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
+    console.log('API URL:', apiUrl);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to convert speech to text');
     }
 
-    const URL = process.env.EXPO_PUBLIC_STT_URL;
-
-    try {
-      setIsLoading(true);
-      setTranscription("");
-
-      const formData = new FormData();
-      const file = {
-        uri: uri,
-        type: "audio/wav",
-        name: uri.split("/").pop() || "recording.wav",
+    const data = await response.json();
+    
+    if (data.transcript) {
+      const newMessage = {
+        id: Date.now().toString(),
+        text: data.transcript,
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
       };
 
-      formData.append("audio", file);
-
-      console.log(`Sending audio file to ${URL}`);
-
-      const response = await fetch(URL, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to convert speech to text");
-      }
-
-      if (data.transcript) {
-        const newMessage = {
-          id: Date.now().toString(),
-          text: data.transcript,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString(),
-        };
-
-        setMessages((prev) => [...prev, newMessage]);
-        setTranscription(data.transcript);
-      } else {
-        throw new Error("No transcription found in response");
-      }
-    } catch (error) {
-      console.error("Error converting speech to text:", error);
-      Alert.alert("Error", error.message || "Failed to convert speech to text");
-    } finally {
-      setIsLoading(false);
+      setMessages((prev) => [...prev, newMessage]);
+      setTranscription(data.transcript);
+    } else {
+      throw new Error('No transcription received from server');
     }
-  };
+  } catch (error) {
+    console.error('STT Error:', error);
+    Alert.alert(
+      'Conversion Error',
+      error.message || 'Failed to convert speech to text'
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     let mounted = true;

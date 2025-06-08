@@ -73,7 +73,9 @@ const Feedback = () => {
   };
 
   const handleSubmit = async () => {
-    const URI = process.env.EXPO_PUBLIC_FEEDBACK_URL;
+    const host = process.env.EXPO_PUBLIC_URL;
+    const URI = new URL("/api/v1/feedback/submit", host).toString();
+    console.log(URI);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 

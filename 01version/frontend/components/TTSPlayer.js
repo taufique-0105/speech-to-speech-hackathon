@@ -52,7 +52,6 @@ const TTSComponent = ({ initialText = "" }) => {
   }, [messages]);
 
   const fetchTTS = async () => {
-    const URI = process.env.EXPO_PUBLIC_TTS_URL;
     console.log(URI);
     if (!text.trim()) {
       Alert.alert("Input Required", "Please enter some text to convert");
@@ -60,6 +59,8 @@ const TTSComponent = ({ initialText = "" }) => {
     }
 
     setLoading(true);
+    const host = process.env.EXPO_PUBLIC_URL;
+    const URI = new URL("/api/v1/tts", host).toString();
 
     try {
       // Add user message first
@@ -69,7 +70,7 @@ const TTSComponent = ({ initialText = "" }) => {
         isUser: true,
         language: getLanguageName(selectedLanguage),
       };
-      setMessages(prev => [...prev, newUserMessage]);
+      setMessages((prev) => [...prev, newUserMessage]);
 
       const response = await fetch(URI, {
         method: "POST",
@@ -99,7 +100,7 @@ const TTSComponent = ({ initialText = "" }) => {
       });
 
       setAudioUri(fileUri);
-      
+
       // Add system response
       const newSystemMessage = {
         id: Date.now() + 1,
@@ -107,7 +108,7 @@ const TTSComponent = ({ initialText = "" }) => {
         isUser: false,
         audioUri: fileUri,
       };
-      setMessages(prev => [...prev, newSystemMessage]);
+      setMessages((prev) => [...prev, newSystemMessage]);
 
       // Clear input
       setText("");
@@ -117,7 +118,7 @@ const TTSComponent = ({ initialText = "" }) => {
         "Conversion Error",
         error.message || "Failed to generate audio"
       );
-      
+
       // Add error message
       const errorMessage = {
         id: Date.now() + 1,
@@ -125,7 +126,7 @@ const TTSComponent = ({ initialText = "" }) => {
         isUser: false,
         isError: true,
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
@@ -153,15 +154,17 @@ const TTSComponent = ({ initialText = "" }) => {
   };
 
   const renderMessage = ({ item }) => (
-    <View style={[
-      styles.messageContainer,
-      item.isUser ? styles.userMessage : styles.systemMessage,
-      item.isError && styles.errorMessage
-    ]}>
+    <View
+      style={[
+        styles.messageContainer,
+        item.isUser ? styles.userMessage : styles.systemMessage,
+        item.isError && styles.errorMessage,
+      ]}
+    >
       {!item.isUser && !item.isError && (
         <Text style={styles.languageTag}>{item.text}</Text>
       )}
-      
+
       {item.isUser ? (
         <>
           <Text style={styles.messageText}>{item.text}</Text>
@@ -170,7 +173,7 @@ const TTSComponent = ({ initialText = "" }) => {
       ) : item.isError ? (
         <Text style={styles.messageText}>{item.text}</Text>
       ) : (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.playMessageButton}
           onPress={() => handlePlay(item.audioUri)}
         >
@@ -188,7 +191,7 @@ const TTSComponent = ({ initialText = "" }) => {
     >
       <View style={styles.mainContent}>
         <Text style={styles.title}>Text-to-Speech Converter</Text>
-        
+
         <TouchableOpacity
           style={styles.languageSelector}
           onPress={() => setShowLanguageModal(true)}
@@ -252,7 +255,7 @@ const TTSComponent = ({ initialText = "" }) => {
         </Modal>
       </View>
 
-      <View style={styles.inputWrapper}>
+      <View style={[styles.inputWrapper]}>
         <TextInput
           style={styles.input}
           placeholder="Type or paste your text here..."

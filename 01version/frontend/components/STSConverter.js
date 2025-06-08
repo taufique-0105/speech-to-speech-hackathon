@@ -140,7 +140,7 @@ const STSConverter = () => {
       };
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
-      console.log("Recording saved at", uri);
+      // console.log("Recording saved at", uri);
     } catch (error) {
       console.error("Stop recording error:", error);
       Alert.alert(
@@ -155,7 +155,9 @@ const STSConverter = () => {
       Alert.alert("No Audio", "Please record an audio file first.");
       return;
     }
-    const API_URL = process.env.EXPO_PUBLIC_STS_URL;
+    const host = process.env.EXPO_PUBLIC_URL;
+    const API_URL = new URL("/api/v1/sts", host).toString();
+    console.log(API_URL);
 
     try {
       setIsLoading(true);
@@ -184,7 +186,7 @@ const STSConverter = () => {
 
       const data = await response.json();
 
-      console.log("API Response:", data);
+      // console.log("API Response:", data);
       if (!data.audio) {
         throw new Error("No audio data received from the server");
       }
