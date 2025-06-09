@@ -43,6 +43,10 @@ git clone https://github.com/taufique-0105/OdishaVox.git
 ```
 ### 
 ## Starting dev sever
+- Move to the code space
+```
+cd 01version
+```
 ### Backend
 - Move to the backend dir
 
