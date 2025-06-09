@@ -58,8 +58,7 @@ cd backend
 ```
 echo "API_KEY=<YOUR_API_KEY>
 PORT=3000
-MONGODB_URI=<MONGODB_CONNECTION_STRING>
-API_ADMIN_KEY=<ADMIN_KEY>" > .env
+MONGODB_URI=<MONGODB_CONNECTION_STRING>" > .env
 ```
 
 - install dependencies
