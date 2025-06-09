@@ -1,3 +1,5 @@
+[![Contributing](https://img.shields.io/badge/Contributions-welcome-brightgreen.svg)][contrib]
+
 # OdishaVox
 ## Stack
 - React-native
@@ -103,3 +105,10 @@ npx expo start
 - Download Expo Go
 
 - Scan the QR in Expo Go to get started
+
+## Contributing
+
+We welcome contributions from everyone!  
+Please see [CONTRIBUTING.md][contrib] for details on how to get started, our code of conduct, and best practices.
+
+[contrib]: /docs/CONTRIBUTING.md
