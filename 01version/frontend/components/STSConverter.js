@@ -13,6 +13,7 @@ import {
   RecordingPresets,
   useAudioPlayer,
   useAudioRecorder,
+  useAudioPlayerStatus,
 } from "expo-audio";
 import * as FileSystem from "expo-file-system";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -24,9 +25,11 @@ const STSConverter = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Create a single audio player instance
   const player = useAudioPlayer(null);
+  const playerStatus = useAudioPlayerStatus(player);
 
   const recordingOptions = {
     ...RecordingPresets.HIGH_QUALITY,
@@ -218,6 +221,19 @@ const STSConverter = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!playerStatus) return;
+
+    // Update playing state
+    setIsPlaying(playerStatus.playing);
+
+    // Handle playback completion
+    if (playerStatus.didJustFinish) {
+      setCurrentlyPlaying(null);
+      setIsPlaying(false);
+    }
+  }, [playerStatus]);
 
   const renderMessage = ({ item }) => {
     return (

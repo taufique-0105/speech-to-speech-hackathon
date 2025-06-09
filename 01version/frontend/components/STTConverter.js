@@ -14,6 +14,7 @@ import {
   AudioModule,
   RecordingPresets,
   useAudioPlayer,
+  useAudioPlayerStatus,
 } from "expo-audio";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -40,6 +41,10 @@ const STTConverter = () => {
 
   const record = async () => {
     try {
+      setIsPlaying(false);
+      setAudioUri(null);
+      setIsLoading(false);
+      player.pause();
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
       setIsRecording(true);
@@ -62,82 +67,92 @@ const STTConverter = () => {
   };
 
   const player = useAudioPlayer(audioUri);
+  const playerStatus = useAudioPlayerStatus(player);
 
   const playAudio = async () => {
-    if (!player || !audioUri || isPlaying) return;
+    if (!player || !audioUri) return;
 
     try {
-      setIsPlaying(true);
-      player.play();
+      if (isPlaying) {
+        await player.pause();
+      } else {
+        // If at end of audio, restart from beginning
+        if (playerStatus?.position === playerStatus?.duration) {
+          await player.seekTo(0);
+        }
+        await player.play();
+      }
+      // Let the useEffect handle the state update based on playerStatus
     } catch (error) {
       console.error("Playback error:", error);
       Alert.alert("Error", "Failed to play audio");
-    } finally {
       setIsPlaying(false);
     }
   };
 
   const speechToText = async (uri) => {
-  if (!uri) {
-    Alert.alert("Error", "No audio recording available");
-    return;
-  }
-
-  try {
-    setIsLoading(true);
-    setTranscription("");
-
-    // Create form data
-    const formData = new FormData();
-    formData.append('audio', {
-      uri: uri,
-      type: 'audio/wav',  // or 'audio/x-wav'
-      name: 'recording.wav',
-    });
-
-    // Use the full URL from your environment variable directly
-    const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
-    console.log('API URL:', apiUrl);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to convert speech to text');
+    if (!uri) {
+      Alert.alert("Error", "No audio recording available");
+      return;
     }
 
-    const data = await response.json();
-    
-    if (data.transcript) {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: data.transcript,
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
+    try {
+      setIsLoading(true);
+      setTranscription("");
 
-      setMessages((prev) => [...prev, newMessage]);
-      setTranscription(data.transcript);
-    } else {
-      throw new Error('No transcription received from server');
+      // Create form data
+      const formData = new FormData();
+      formData.append("audio", {
+        uri: uri,
+        type: "audio/wav", // or 'audio/x-wav'
+        name: "recording.wav",
+      });
+
+      // Use the full URL from your environment variable directly
+      const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
+      console.log("API URL:", apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Failed to convert speech to text"
+        );
+      }
+
+      const data = await response.json();
+
+      if (data.transcript) {
+        const newMessage = {
+          id: Date.now().toString(),
+          text: data.transcript,
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString(),
+        };
+
+        setMessages((prev) => [...prev, newMessage]);
+        setTranscription(data.transcript);
+      } else {
+        throw new Error("No transcription received from server");
+      }
+    } catch (error) {
+      console.error("STT Error:", error);
+      Alert.alert(
+        "Conversion Error",
+        error.message || "Failed to convert speech to text"
+      );
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('STT Error:', error);
-    Alert.alert(
-      'Conversion Error',
-      error.message || 'Failed to convert speech to text'
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -161,49 +176,32 @@ const STTConverter = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!playerStatus) return;
+    setIsPlaying(playerStatus.playing);
+    if (playerStatus.didJustFinish) {
+      setIsPlaying(false);
+    }
+  }, [playerStatus]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Speech to Text Converter</Text>
-
       <View style={styles.chatContainer}>
         {messages.length === 0 ? (
           <View style={styles.emptyStateContainer}>
             <MaterialIcons
-              name="record-voice-over"
-              size={80}
+              name="mic"
+              size={48}
               color="#6200ee"
               style={styles.emptyIcon}
             />
-            <Text style={styles.emptyTitle}>No recordings yet</Text>
-            <Text style={styles.emptySubtitle}>Try these actions: </Text>
-
-            <View style={styles.tipContainer}>
-              <MaterialIcons name="mic" size={20} color="#6200ee" />
-              <Text style={styles.tipText}>
-                Press the red button to start recording
-              </Text>
-            </View>
-
-            <View style={styles.tipContainer}>
-              <MaterialIcons name="play-arrow" size={20} color="#6200ee" />
-              <Text style={styles.tipText}>
-                Play your recordings before converting
-              </Text>
-            </View>
-
-            <View style={styles.samplePrompts}>
-              <Text style={styles.sampleTitle}>Try saying:</Text>
-              <View style={styles.promptBubble}>
-                <Text style={styles.promptText}>
-                  "What's the weather today?"
-                </Text>
-              </View>
-              <View style={styles.promptBubble}>
-                <Text style={styles.promptText}>
-                  "Set a reminder for tomorrow"
-                </Text>
-              </View>
-            </View>
+            <Text style={styles.emptyTitle}>No messages yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Press the{" "}
+              <Text style={styles.highlightText}>microphone button</Text> below
+              to begin
+            </Text>
           </View>
         ) : (
           <ScrollView
@@ -222,7 +220,7 @@ const STTConverter = () => {
                 ]}
               >
                 <Text style={message.isUser ? styles.userText : styles.aiText}>
-                  {message.text + "  "}
+                  {message.text}
                 </Text>
                 <Text style={styles.timestamp}>{message.timestamp}</Text>
               </View>
@@ -230,51 +228,55 @@ const STTConverter = () => {
           </ScrollView>
         )}
       </View>
-
       <View style={styles.buttonContainer}>
         <Pressable
-          style={[styles.recordButton, isRecording && styles.recordingActive]}
+          style={({ pressed }) => [
+            styles.recordButton,
+            isRecording && styles.recordingActive,
+            pressed && styles.buttonPressed,
+          ]}
           onPress={isRecording ? stopRecording : record}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>
-            {isRecording ? "⏹ Stop" : "🎤 Record"}
-          </Text>
+          <MaterialIcons
+            name={isRecording ? "stop" : "mic"}
+            size={24}
+            color="#fff"
+          />
         </Pressable>
 
         <Pressable
-          style={[
-            styles.actionButton,
-            (!audioUri || isPlaying) && styles.disabledButton,
-          ]}
-          onPress={playAudio}
-          disabled={!audioUri || isPlaying || isLoading}
-        >
-          <Text style={styles.buttonText}>
-            {isPlaying ? "🔊 Playing..." : "▶️ Play"}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[
+          style={({ pressed }) => [
             styles.actionButton,
             (!audioUri || isLoading) && styles.disabledButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={playAudio}
+          disabled={!audioUri || isLoading}
+        >
+          <MaterialIcons
+            name={isPlaying ? "pause" : "play-arrow"}
+            size={24}
+            color="#6200ee"
+          />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            (!audioUri || isLoading) && styles.disabledButton,
+            pressed && styles.buttonPressed,
           ]}
           onPress={() => speechToText(audioUri)}
           disabled={!audioUri || isLoading}
         >
-          <Text style={styles.buttonText}>
-            {isLoading ? "Processing..." : "🔊 Convert"}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#6200ee" />
+          ) : (
+            <MaterialIcons name="send" size={24} color="#6200ee" />
+          )}
         </Pressable>
       </View>
-
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6200ee" />
-          <Text style={styles.loadingText}>Processing audio...</Text>
-        </View>
-      )}
     </View>
   );
 };
@@ -349,28 +351,67 @@ const styles = StyleSheet.create({
   chatContainer: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 12,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  emptyIcon: {
     marginBottom: 16,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    opacity: 0.8,
   },
-  chatContent: {
-    paddingBottom: 16,
-  },
-  messageBubble: {
-    maxWidth: "80%",
-    padding: 12,
-    borderRadius: 12,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 8,
   },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  highlightText: {
+    fontWeight: "600",
+    color: "#6200ee",
+  },
+  chatContent: {
+    padding: 16,
+  },
+  messageBubble: {
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    maxWidth: "80%",
+  },
   userBubble: {
-    alignSelf: "flex-end",
     backgroundColor: "#6200ee",
-    borderBottomRightRadius: 2,
+    alignSelf: "flex-end",
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    backgroundColor: "#f5f5f5",
+    alignSelf: "flex-start",
+    borderBottomLeftRadius: 4,
+  },
+  userText: {
+    color: "#fff",
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  aiText: {
+    color: "#333",
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  timestamp: {
+    fontSize: 11,
+    color: "#999",
+    marginTop: 4,
+    textAlign: "right",
   },
   aiBubble: {
     alignSelf: "flex-start",
@@ -381,63 +422,41 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
   },
-  aiText: {
-    color: "#333",
-    fontSize: 16,
-  },
-  timestamp: {
-    fontSize: 10,
-    color: "#757575",
-    marginTop: 4,
-    textAlign: "right",
-  },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+    gap: 16,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
   },
   recordButton: {
-    backgroundColor: "#ff3b30",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    minWidth: 100,
+    backgroundColor: "#6200ee",
+    width: 100,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
     alignItems: "center",
+    elevation: 2,
   },
   recordingActive: {
     backgroundColor: "#d32f2f",
   },
   actionButton: {
-    backgroundColor: "#6200ee",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    width: 48,
+    height: 48,
     borderRadius: 24,
-    minWidth: 100,
-    alignItems: "center",
-  },
-  disabledButton: {
-    backgroundColor: "#9e9e9e",
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  loadingContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "#f5f5f5",
   },
-  loadingText: {
-    marginTop: 16,
-    color: "#fff",
-    fontSize: 16,
+  disabledButton: {
+    opacity: 0.5,
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.95 }],
   },
 });
 
