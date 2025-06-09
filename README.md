@@ -43,6 +43,10 @@ git clone https://github.com/taufique-0105/OdishaVox.git
 ```
 ### 
 ## Starting dev sever
+- Move to the code space
+```
+cd 01version
+```
 ### Backend
 - Move to the backend dir
 
@@ -52,9 +56,9 @@ cd backend
 
 - Create a .env file in the backend folder
 ```
-API_KEY="<YOUR_API_KEY>"
+echo "API_KEY=<YOUR_API_KEY>
 PORT=3000
-MONGODB_URI=<MONGODB_URL>
+MONGODB_URI=<MONGODB_CONNECTION_STRING>" > .env
 ```
 
 - install dependencies
