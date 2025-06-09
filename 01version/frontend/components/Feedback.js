@@ -73,13 +73,14 @@ const Feedback = () => {
   };
 
   const handleSubmit = async () => {
+    const host = process.env.EXPO_PUBLIC_URL;
+    const URI = new URL("/api/v1/feedback/submit", host).toString();
+    console.log(URI);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       if (validateForm()) {
-        // Use your computer's IP if testing on physical device
-        // Or 'localhost' if using emulator with adb reverse
-        const response = await fetch("http://localhost:3000/api/v1/feedback/submit", {
+        const response = await fetch(URI, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

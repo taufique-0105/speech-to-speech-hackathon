@@ -28,10 +28,6 @@ const STSConverter = () => {
   // Create a single audio player instance
   const player = useAudioPlayer(null);
 
-  // Use your computer's IP if testing on physical device
-  // Or 'localhost' if using emulator with adb reverse
-  const API_URL = "http://localhost:3000/api/v1/sts";
-
   const recordingOptions = {
     ...RecordingPresets.HIGH_QUALITY,
     extension: ".wav",
@@ -144,7 +140,7 @@ const STSConverter = () => {
       };
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
-      console.log("Recording saved at", uri);
+      // console.log("Recording saved at", uri);
     } catch (error) {
       console.error("Stop recording error:", error);
       Alert.alert(
@@ -159,6 +155,9 @@ const STSConverter = () => {
       Alert.alert("No Audio", "Please record an audio file first.");
       return;
     }
+    const host = process.env.EXPO_PUBLIC_URL;
+    const API_URL = new URL("/api/v1/sts", host).toString();
+    console.log(API_URL);
 
     try {
       setIsLoading(true);
@@ -187,7 +186,7 @@ const STSConverter = () => {
 
       const data = await response.json();
 
-      console.log("API Response:", data);
+      // console.log("API Response:", data);
       if (!data.audio) {
         throw new Error("No audio data received from the server");
       }
@@ -340,7 +339,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: "#ff6b6b20",
     borderRadius: 30,
-    padding: 20
+    padding: 20,
   },
   messagesList: {
     paddingBottom: 20,
