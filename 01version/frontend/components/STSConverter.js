@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AudioModule,
   RecordingPresets,
@@ -16,7 +16,8 @@ import {
   useAudioPlayerStatus,
 } from "expo-audio";
 import * as FileSystem from "expo-file-system";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const STSConverter = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -26,8 +27,9 @@ const STSConverter = () => {
   const [messages, setMessages] = useState([]);
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const navigation = useNavigation();
+  const flatListRef = useRef(null); // Added ref for FlatList
 
-  // Create a single audio player instance
   const player = useAudioPlayer(null);
   const playerStatus = useAudioPlayerStatus(player);
 
@@ -45,19 +47,16 @@ const STSConverter = () => {
 
   const playing = async (uri) => {
     try {
-      // If already playing this URI, stop it
       if (currentlyPlaying === uri) {
         player.pause();
         setCurrentlyPlaying(null);
         return;
       }
 
-      // If playing something else, stop it first
       if (currentlyPlaying) {
         player.pause();
       }
 
-      // Load and play the new audio
       player.replace(uri);
       player.play();
       setCurrentlyPlaying(uri);
@@ -134,7 +133,6 @@ const STSConverter = () => {
       setAudioUri(uri);
       setIsRecording(false);
 
-      // Add the recorded message to the messages array
       const newMessage = {
         id: Date.now().toString(),
         uri: uri,
@@ -143,7 +141,9 @@ const STSConverter = () => {
       };
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
-      // console.log("Recording saved at", uri);
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true }); // Scroll to bottom
+      }
     } catch (error) {
       console.error("Stop recording error:", error);
       Alert.alert(
@@ -189,7 +189,6 @@ const STSConverter = () => {
 
       const data = await response.json();
 
-      // console.log("API Response:", data);
       if (!data.audio) {
         throw new Error("No audio data received from the server");
       }
@@ -201,7 +200,6 @@ const STSConverter = () => {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Add the received message to the messages array
       const newMessage = {
         id: Date.now().toString(),
         uri: fileUri,
@@ -210,6 +208,9 @@ const STSConverter = () => {
       };
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true }); // Scroll to bottom
+      }
       console.log("Processed audio saved at", fileUri);
     } catch (error) {
       console.error("API Error:", error);
@@ -225,10 +226,8 @@ const STSConverter = () => {
   useEffect(() => {
     if (!playerStatus) return;
 
-    // Update playing state
     setIsPlaying(playerStatus.playing);
 
-    // Handle playback completion
     if (playerStatus.didJustFinish) {
       setCurrentlyPlaying(null);
       setIsPlaying(false);
@@ -260,72 +259,78 @@ const STSConverter = () => {
     );
   };
 
-  if (hasPermission === false) {
-    return (
-      <View style={styles.container}>
+  return (
+    <View style={styles.container}>
+      <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={20} color="#000" />
+      </Pressable>
+      {hasPermission === false ? (
         <Text style={styles.errorText}>
           Microphone permission is required for this app to work.
         </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Speech to Speech</Text>
-      <Text style={styles.subtitle}>Record, convert, and play audio</Text>
-
-      {/* Messages display area */}
-      <View style={styles.messagesContainer}>
-        <FlatList
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
-          inverted
-        />
-      </View>
-
-      <View style={styles.mainButtonContainer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.recordButton,
-            isRecording && styles.recordingButton,
-            pressed && styles.buttonPressed,
-            hasPermission === false && styles.disabledButton,
-          ]}
-          onPress={isRecording ? stopRecording : record}
-          disabled={hasPermission === false}
-        >
-          <Ionicons
-            name={isRecording ? "stop" : "mic"}
-            size={32}
-            color="white"
-          />
-          <Text style={styles.recordButtonText}>
-            {isRecording ? "Stop Recording" : "Start Recording"}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.sendButton,
-            (!audioUri || isRecording) && styles.disabledButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={speechToSpeech}
-          disabled={!audioUri || isRecording || isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Ionicons name="send" size={24} color="white" />
-            </>
-          )}
-        </Pressable>
-      </View>
+      ) : (
+        <>
+          <Text style={styles.title}>Speech to Speech</Text>
+          <Text style={styles.subtitle}>Record, convert, and play audio</Text>
+          <View style={styles.messagesContainer}>
+            <FlatList
+              ref={flatListRef} // Added ref
+              data={messages}
+              renderItem={renderMessage}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.messagesList}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>Welcome to Speech to Speech</Text>
+                  <Text style={styles.emptySubText}>
+                    Record your voice, and we’ll convert it to another speech.
+                  </Text>
+                  <Text style={styles.emptySubText}>
+                    Start by pressing the microphone button below.
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+          <View style={styles.mainButtonContainer}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.recordButton,
+                isRecording && styles.recordingButton,
+                pressed && styles.buttonPressed,
+                hasPermission === false && styles.disabledButton,
+              ]}
+              onPress={isRecording ? stopRecording : record}
+              disabled={hasPermission === false}
+            >
+              <Ionicons
+                name={isRecording ? "stop" : "mic"}
+                size={32}
+                color="white"
+              />
+              <Text style={styles.recordButtonText}>
+                {isRecording ? "Stop Recording" : "Start Recording"}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.sendButton,
+                (!audioUri || isRecording) && styles.disabledButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={speechToSpeech}
+              disabled={!audioUri || isRecording || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Ionicons name="send" size={24} color="white" />
+              )}
+            </Pressable>
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -337,6 +342,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#f8f9fa",
     padding: 20,
+  },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 1,
   },
   title: {
     fontSize: 28,
@@ -353,8 +364,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     marginBottom: 20,
-    backgroundColor: "#ff6b6b20",
-    borderRadius: 30,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 0,
     padding: 20,
   },
   messagesList: {
@@ -385,21 +398,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     opacity: 0.8,
-  },
-  waveformPlaceholder: {
-    width: "100%",
-    height: 80,
-    backgroundColor: "#e9ecef",
-    borderRadius: 15,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    overflow: "hidden",
-  },
-  recordingIndicator: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#ff6b6b20",
   },
   mainButtonContainer: {
     width: "100%",
@@ -448,11 +446,6 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: "#37b24b",
   },
-  actionButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
   disabledButton: {
     opacity: 0.5,
   },
@@ -465,6 +458,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     padding: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
+  },
+  emptySubText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 5,
   },
 });
 

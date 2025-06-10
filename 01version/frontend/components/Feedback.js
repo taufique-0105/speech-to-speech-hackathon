@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Pressable,
 } from "react-native";
 import React, { useState } from "react";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import * as Haptics from "expo-haptics";
+import { useNavigation } from "@react-navigation/native";
 
 const Feedback = () => {
   const { isDarkTheme } = useTheme();
@@ -21,6 +23,8 @@ const Feedback = () => {
     message: "",
   });
   const [errors, setErrors] = useState({});
+  const navigation = useNavigation();
+  const backButtonIconColor = isDarkTheme ? "#fff" : "#000";
 
   const handleFieldFocus = async () => {
     try {
@@ -43,7 +47,6 @@ const Feedback = () => {
       ...formData,
       [name]: value,
     });
-    // Clear error when user types
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -75,7 +78,6 @@ const Feedback = () => {
   const handleSubmit = async () => {
     const host = process.env.EXPO_PUBLIC_URL;
     const URI = new URL("/api/v1/feedback/submit", host).toString();
-    // console.log(URI);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -150,7 +152,6 @@ const Feedback = () => {
     return stars;
   };
 
-  // Dynamic styles based on theme
   const dynamicStyles = {
     container: {
       backgroundColor: isDarkTheme ? "#121212" : "#f5f5f5",
@@ -174,98 +175,117 @@ const Feedback = () => {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, dynamicStyles.container]}
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={[styles.card, dynamicStyles.card, styles.formContainer]}>
-        <Text style={[styles.title, dynamicStyles.text]}>
-          Share Your Feedback
-        </Text>
-
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, dynamicStyles.label]}>
-            Your Name (Optional)
+    <View style={styles.outerContainer}>
+      <Pressable
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+        hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+      >
+        <Ionicons name="arrow-back" size={24} color={backButtonIconColor} />
+      </Pressable>
+      <ScrollView
+        style={[styles.container, dynamicStyles.container]}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[styles.card, dynamicStyles.card, styles.formContainer]}>
+          <Text style={[styles.title, dynamicStyles.text]}>
+            Share Your Feedback
           </Text>
-          <TextInput
-            style={[styles.input, dynamicStyles.input]}
-            placeholder="John Doe"
-            placeholderTextColor={isDarkTheme ? "#555" : "#999"}
-            value={formData.name}
-            onChangeText={(text) => handleChange("name", text)}
-            onFocus={handleFieldFocus}
-            onBlur={handleFieldBlur}
-          />
-        </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, dynamicStyles.label]}>
-            Email (Optional)
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              dynamicStyles.input,
-              errors.email && styles.errorInput,
-            ]}
-            placeholder="your@email.com"
-            placeholderTextColor={isDarkTheme ? "#555" : "#999"}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={formData.email}
-            onChangeText={(text) => handleChange("email", text)}
-            onFocus={handleFieldFocus}
-            onBlur={handleFieldBlur}
-          />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.label]}>
+              Your Name (Optional)
+            </Text>
+            <TextInput
+              style={[styles.input, dynamicStyles.input]}
+              placeholder="John Doe"
+              placeholderTextColor={isDarkTheme ? "#555" : "#999"}
+              value={formData.name}
+              onChangeText={(text) => handleChange("name", text)}
+              onFocus={handleFieldFocus}
+              onBlur={handleFieldBlur}
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, dynamicStyles.label]}>
-            How would you rate our app?
-          </Text>
-          <View style={styles.ratingContainer}>{renderStarRating()}</View>
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.label]}>
+              Email (Optional)
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                dynamicStyles.input,
+                errors.email && styles.errorInput,
+              ]}
+              placeholder="your@email.com"
+              placeholderTextColor={isDarkTheme ? "#555" : "#999"}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={formData.email}
+              onChangeText={(text) => handleChange("email", text)}
+              onFocus={handleFieldFocus}
+              onBlur={handleFieldBlur}
+            />
+            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, dynamicStyles.label]}>
-            Your Feedback*
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              styles.messageInput,
-              dynamicStyles.input,
-              errors.message && styles.errorInput,
-            ]}
-            placeholder="Tell us what you think..."
-            placeholderTextColor={isDarkTheme ? "#555" : "#999"}
-            multiline
-            numberOfLines={4}
-            value={formData.message}
-            onChangeText={(text) => handleChange("message", text)}
-            onFocus={handleFieldFocus}
-            onBlur={handleFieldBlur}
-          />
-          {errors.message && (
-            <Text style={styles.errorText}>{errors.message}</Text>
-          )}
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.label]}>
+              How would you rate our app?
+            </Text>
+            <View style={styles.ratingContainer}>{renderStarRating()}</View>
+          </View>
 
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.submitButtonText}>Submit Feedback</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.label]}>
+              Your Feedback*
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.messageInput,
+                dynamicStyles.input,
+                errors.message && styles.errorInput,
+              ]}
+              placeholder="Tell us what you think..."
+              placeholderTextColor={isDarkTheme ? "#555" : "#999"}
+              multiline
+              numberOfLines={4}
+              value={formData.message}
+              onChangeText={(text) => handleChange("message", text)}
+              onFocus={handleFieldFocus}
+              onBlur={handleFieldBlur}
+            />
+            {errors.message && (
+              <Text style={styles.errorText}>{errors.message}</Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={handleSubmit}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitButtonText}>Submit Feedback</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    paddingTop: 40,
+  },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 10,
+  },
   container: {
     flex: 1,
   },

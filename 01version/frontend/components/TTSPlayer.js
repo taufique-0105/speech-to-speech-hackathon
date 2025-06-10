@@ -12,10 +12,12 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
 import { useAudioPlayer } from "expo-audio";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const TTSComponent = ({ initialText = "" }) => {
   const [text, setText] = useState(initialText);
@@ -25,24 +27,24 @@ const TTSComponent = ({ initialText = "" }) => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [messages, setMessages] = useState([]);
   const flatListRef = useRef(null);
+  const navigation = useNavigation();
 
   const player = useAudioPlayer(audioUri);
 
   const languages = [
-    { code: "en-IN", name: "English (India) " },
+    { code: "en-IN", name: "English (India)" },
     { code: "od-IN", name: "Odia" },
-    { code: "hi-IN", name: "Hindi " },
-    { code: "ta-IN", name: "Tamil " },
-    { code: "te-IN", name: "Telugu " },
-    { code: "kn-IN", name: "Kannada " },
-    { code: "ml-IN", name: "Malayalam " },
-    { code: "bn-IN", name: "Bengali " },
-    { code: "gu-IN", name: "Gujarati " },
-    { code: "mr-IN", name: "Marathi " },
-    { code: "pa-IN", name: "Punjabi " },
+    { code: "hi-IN", name: "Hindi" },
+    { code: "ta-IN", name: "Tamil" },
+    { code: "te-IN", name: "Telugu" },
+    { code: "kn-IN", name: "Kannada" },
+    { code: "ml-IN", name: "Malayalam" },
+    { code: "bn-IN", name: "Bengali" },
+    { code: "gu-IN", name: "Gujarati" },
+    { code: "mr-IN", name: "Marathi" },
+    { code: "pa-IN", name: "Punjabi" },
   ];
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
       setTimeout(() => {
@@ -52,7 +54,6 @@ const TTSComponent = ({ initialText = "" }) => {
   }, [messages]);
 
   const fetchTTS = async () => {
-    console.log(URI);
     if (!text.trim()) {
       Alert.alert("Input Required", "Please enter some text to convert");
       return;
@@ -63,7 +64,6 @@ const TTSComponent = ({ initialText = "" }) => {
     const URI = new URL("/api/v1/tts", host).toString();
 
     try {
-      // Add user message first
       const newUserMessage = {
         id: Date.now(),
         text: text.trim(),
@@ -101,7 +101,6 @@ const TTSComponent = ({ initialText = "" }) => {
 
       setAudioUri(fileUri);
 
-      // Add system response
       const newSystemMessage = {
         id: Date.now() + 1,
         text: `Audio generated in ${getLanguageName(selectedLanguage)}`,
@@ -110,7 +109,6 @@ const TTSComponent = ({ initialText = "" }) => {
       };
       setMessages((prev) => [...prev, newSystemMessage]);
 
-      // Clear input
       setText("");
     } catch (error) {
       console.error("TTS Error:", error);
@@ -119,7 +117,6 @@ const TTSComponent = ({ initialText = "" }) => {
         error.message || "Failed to generate audio"
       );
 
-      // Add error message
       const errorMessage = {
         id: Date.now() + 1,
         text: "Failed to generate audio",
@@ -189,6 +186,9 @@ const TTSComponent = ({ initialText = "" }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
+      <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <MaterialIcons name="arrow-back" size={20} color="#000" />
+      </Pressable>
       <View style={styles.mainContent}>
         <Text style={styles.title}>Text-to-Speech Converter</Text>
 
@@ -209,7 +209,6 @@ const TTSComponent = ({ initialText = "" }) => {
             renderItem={renderMessage}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.messagesList}
-            // Remove inverted prop to show messages in normal order
           />
         </View>
 
@@ -286,6 +285,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8f9fa",
   },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 1,
+  },
   mainContent: {
     flex: 1,
     padding: 20,
@@ -349,9 +354,6 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-  },
-  userMessageText: {
-    color: "#fff",
   },
   languageTag: {
     fontSize: 12,

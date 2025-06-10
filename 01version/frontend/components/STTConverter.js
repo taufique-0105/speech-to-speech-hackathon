@@ -17,9 +17,11 @@ import {
   useAudioPlayerStatus,
 } from "expo-audio";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const STTConverter = () => {
   const scrollViewRef = useRef();
+  const navigation = useNavigation();
 
   const recordingOptions = {
     ...RecordingPresets.HIGH_QUALITY,
@@ -36,8 +38,12 @@ const STTConverter = () => {
   const [audioUri, setAudioUri] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [transcription, setTranscription] = useState("");
   const [messages, setMessages] = useState([]);
+  const [playingMessageId, setPlayingMessageId] = useState(null);
+  const [currentAudioUri, setCurrentAudioUri] = useState(null);
+
+  const player = useAudioPlayer();
+  const playerStatus = useAudioPlayerStatus(player);
 
   const record = async () => {
     try {
@@ -66,27 +72,25 @@ const STTConverter = () => {
     }
   };
 
-  const player = useAudioPlayer(audioUri);
-  const playerStatus = useAudioPlayerStatus(player);
-
-  const playAudio = async () => {
-    if (!player || !audioUri) return;
-
+  const playMessageAudio = async (messageId, messageAudioUri) => {
     try {
-      if (isPlaying) {
+      if (playingMessageId === messageId) {
         await player.pause();
+        setPlayingMessageId(null);
       } else {
-        // If at end of audio, restart from beginning
-        if (playerStatus?.position === playerStatus?.duration) {
-          await player.seekTo(0);
+        if (isPlaying || playingMessageId) {
+          await player.pause();
+        }
+        if (currentAudioUri !== messageAudioUri) {
+          await player.replace(messageAudioUri);
+          setCurrentAudioUri(messageAudioUri);
         }
         await player.play();
+        setPlayingMessageId(messageId);
       }
-      // Let the useEffect handle the state update based on playerStatus
     } catch (error) {
-      console.error("Playback error:", error);
-      Alert.alert("Error", "Failed to play audio");
-      setIsPlaying(false);
+      console.error("Message audio playback error:", error);
+      Alert.alert("Error", "Failed to play audio message");
     }
   };
 
@@ -95,20 +99,24 @@ const STTConverter = () => {
       Alert.alert("Error", "No audio recording available");
       return;
     }
-
     try {
       setIsLoading(true);
-      setTranscription("");
+      const audioMessage = {
+        id: `audio_${Date.now()}`,
+        audioUri: uri,
+        isUser: true,
+        isAudio: true,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prev) => [...prev, audioMessage]);
 
-      // Create form data
       const formData = new FormData();
       formData.append("audio", {
         uri: uri,
-        type: "audio/wav", // or 'audio/x-wav'
+        type: "audio/wav",
         name: "recording.wav",
       });
 
-      // Use the full URL from your environment variable directly
       const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
       console.log("API URL:", apiUrl);
 
@@ -123,32 +131,25 @@ const STTConverter = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.message || "Failed to convert speech to text"
-        );
+        throw new Error(errorData.message || "Failed to convert speech to text");
       }
 
       const data = await response.json();
-
       if (data.transcript) {
-        const newMessage = {
-          id: Date.now().toString(),
+        const textMessage = {
+          id: `text_${Date.now()}`,
           text: data.transcript,
           isUser: false,
+          isAudio: false,
           timestamp: new Date().toLocaleTimeString(),
         };
-
-        setMessages((prev) => [...prev, newMessage]);
-        setTranscription(data.transcript);
+        setMessages((prev) => [...prev, textMessage]);
       } else {
         throw new Error("No transcription received from server");
       }
     } catch (error) {
       console.error("STT Error:", error);
-      Alert.alert(
-        "Conversion Error",
-        error.message || "Failed to convert speech to text"
-      );
+      Alert.alert("Conversion Error", error.message || "Failed to convert speech to text");
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +157,6 @@ const STTConverter = () => {
 
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       try {
         const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -167,10 +167,8 @@ const STTConverter = () => {
         console.error("Permission error:", error);
       }
     })();
-
     return () => {
       mounted = false;
-      // Cleanup audio resources
       audioRecorder?.stopAndUnloadAsync?.();
       player?.stopAsync?.();
     };
@@ -181,50 +179,81 @@ const STTConverter = () => {
     setIsPlaying(playerStatus.playing);
     if (playerStatus.didJustFinish) {
       setIsPlaying(false);
+      setPlayingMessageId(null);
     }
   }, [playerStatus]);
 
+  const renderMessage = (message) => {
+    if (message.isAudio) {
+      return (
+        <View
+          key={message.id}
+          style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}
+        >
+          <View style={styles.audioMessageContainer}>
+            <Pressable
+              style={[
+                styles.audioPlayButton,
+                playingMessageId === message.id && styles.playingButton,
+              ]}
+              onPress={() => playMessageAudio(message.id, message.audioUri)}
+            >
+              <MaterialIcons
+                name={playingMessageId === message.id ? "pause" : "play-arrow"}
+                size={20}
+                color={message.isUser ? "#fff" : "#6200ee"}
+              />
+            </Pressable>
+            <View style={styles.audioInfo}>
+              <MaterialIcons
+                name="keyboard-voice"
+                size={20}
+                color={message.isUser ? "#fff" : "#6200ee"}
+                style={styles.audioIcon}
+              />
+              <Text style={[styles.audioLabel, { color: message.isUser ? "#fff" : "#666" }]}>
+                Voice message
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.timestamp}>{message.timestamp}</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View
+          key={message.id}
+          style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}
+        >
+          <Text style={message.isUser ? styles.userText : styles.aiText}>{message.text}</Text>
+          <Text style={styles.timestamp}>{message.timestamp}</Text>
+        </View>
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <MaterialIcons name="arrow-back" size={20} color="#000" />
+      </Pressable>
       <Text style={styles.title}>Speech to Text Converter</Text>
       <View style={styles.chatContainer}>
         {messages.length === 0 ? (
           <View style={styles.emptyStateContainer}>
-            <MaterialIcons
-              name="mic"
-              size={48}
-              color="#6200ee"
-              style={styles.emptyIcon}
-            />
+            <MaterialIcons name="mic" size={48} color="#6200ee" style={styles.emptyIcon} />
             <Text style={styles.emptyTitle}>No messages yet</Text>
             <Text style={styles.emptySubtitle}>
-              Press the{" "}
-              <Text style={styles.highlightText}>microphone button</Text> below
-              to begin
+              Press the <Text style={styles.highlightText}>microphone button</Text> below to begin
             </Text>
           </View>
         ) : (
           <ScrollView
             contentContainerStyle={styles.chatContent}
             ref={scrollViewRef}
-            onContentSizeChange={() =>
-              scrollViewRef.current?.scrollToEnd({ animated: true })
-            }
+            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
           >
-            {messages.map((message) => (
-              <View
-                key={message.id}
-                style={[
-                  styles.messageBubble,
-                  message.isUser ? styles.userBubble : styles.aiBubble,
-                ]}
-              >
-                <Text style={message.isUser ? styles.userText : styles.aiText}>
-                  {message.text}
-                </Text>
-                <Text style={styles.timestamp}>{message.timestamp}</Text>
-              </View>
-            ))}
+            {messages.map(renderMessage)}
           </ScrollView>
         )}
       </View>
@@ -238,29 +267,8 @@ const STTConverter = () => {
           onPress={isRecording ? stopRecording : record}
           disabled={isLoading}
         >
-          <MaterialIcons
-            name={isRecording ? "stop" : "mic"}
-            size={24}
-            color="#fff"
-          />
+          <MaterialIcons name={isRecording ? "stop" : "mic"} size={24} color="#fff" />
         </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton,
-            (!audioUri || isLoading) && styles.disabledButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={playAudio}
-          disabled={!audioUri || isLoading}
-        >
-          <MaterialIcons
-            name={isPlaying ? "pause" : "play-arrow"}
-            size={24}
-            color="#6200ee"
-          />
-        </Pressable>
-
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
@@ -268,12 +276,12 @@ const STTConverter = () => {
             pressed && styles.buttonPressed,
           ]}
           onPress={() => speechToText(audioUri)}
-          disabled={!audioUri || isLoading}
+          disabled={isPlaying || isRecording}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#6200ee" />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <MaterialIcons name="send" size={24} color="#6200ee" />
+            <MaterialIcons name="send" size={30} color="#fff" />
           )}
         </Pressable>
       </View>
@@ -286,6 +294,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
     padding: 16,
+  },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 1,
   },
   emptyStateContainer: {
     flex: 1,
@@ -308,38 +322,9 @@ const styles = StyleSheet.create({
     color: "#757575",
     marginBottom: 20,
   },
-  tipContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8,
-    width: "100%",
-    paddingHorizontal: 20,
-  },
-  tipText: {
-    marginLeft: 10,
-    color: "#333",
-    fontSize: 14,
-  },
-  samplePrompts: {
-    marginTop: 30,
-    width: "100%",
-  },
-  sampleTitle: {
-    fontSize: 16,
+  highlightText: {
     fontWeight: "600",
     color: "#6200ee",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  promptBubble: {
-    backgroundColor: "#f0e5ff",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  promptText: {
-    color: "#6200ee",
-    fontStyle: "italic",
   },
   title: {
     fontSize: 24,
@@ -351,32 +336,9 @@ const styles = StyleSheet.create({
   chatContainer: {
     flex: 1,
     backgroundColor: "#fff",
-  },
-  emptyStateContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-    opacity: 0.8,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  highlightText: {
-    fontWeight: "600",
-    color: "#6200ee",
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
   },
   chatContent: {
     padding: 16,
@@ -393,7 +355,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f0f0f0",
     alignSelf: "flex-start",
     borderBottomLeftRadius: 4,
   },
@@ -413,21 +375,40 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "right",
   },
-  aiBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: "#e0e0e0",
-    borderBottomLeftRadius: 2,
+  audioMessageContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 160,
   },
-  userText: {
-    color: "#fff",
-    fontSize: 16,
+  audioPlayButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  playingButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  audioInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  audioIcon: {
+    marginRight: 8,
+  },
+  audioLabel: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
-    gap: 16,
+    gap: 24,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
@@ -439,18 +420,19 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2,
+    elevation: 4,
   },
   recordingActive: {
     backgroundColor: "#d32f2f",
   },
   actionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#4CAF50",
+    elevation: 3,
   },
   disabledButton: {
     opacity: 0.5,
