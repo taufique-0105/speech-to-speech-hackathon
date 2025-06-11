@@ -38,11 +38,6 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "c5725970-f055-4325-adbd-f58217e9b34f"
-      }
-    }
+    ]
   }
 }
