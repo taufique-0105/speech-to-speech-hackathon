@@ -48,7 +48,7 @@ const logger = winston.createLogger({
   levels: logLevels,
   level: process.env.LOG_LEVEL || 'info',
   format: fileLogFormat, // Default format for file transports
-  defaultMeta: { service: 'OdiaAudioGen' },
+  defaultMeta: { service: 'OdishaVox' },
   transports: [
     // Write all logs with importance level of 'error' or less to error.log
     new winston.transports.File({
