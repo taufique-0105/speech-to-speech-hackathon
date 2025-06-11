@@ -1,3 +1,5 @@
+[![Contributing](https://img.shields.io/badge/Contributions-welcome-brightgreen.svg)][contrib]
+
 # OdishaVox
 ## Stack
 - React-native
@@ -127,3 +129,10 @@ npx expo start
 - You'll get this screen, click on start to launch the Emulater
 - Emulator will launch in few seconds.
 - Click 'a' on terminal where expo frontend is running, this will start the app in the emulator.
+
+## Contributing
+
+We welcome contributions from everyone!  
+Please see [CONTRIBUTING.md][contrib] for details on how to get started, our code of conduct, and best practices.
+
+[contrib]: /docs/CONTRIBUTING.md
