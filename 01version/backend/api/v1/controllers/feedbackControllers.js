@@ -3,16 +3,13 @@ import Feedback from "../models/feedbackModel.js";
 export const submitFeedback = async (req, res) => {
   try {
     const { name, email, rating, message } = req.body;
-
-    console.log(`Received feedback: ${name}, ${email}, ${rating}, ${message}`);
-
     if (!rating || !message) {
       return res
-        .status(400)
-        .json({ 
-            success: false,
-            message: "Rating and message are required" 
-        });
+      .status(400)
+      .json({ 
+        success: false,
+        message: "Rating and message are required" 
+      });
     }
     const feedback = new Feedback({
       name: name || "Anonymous",
@@ -20,6 +17,8 @@ export const submitFeedback = async (req, res) => {
       rating,
       message,
     });
+    
+    console.log(`Received feedback: ${feedback}`);
 
     await feedback.save();
     res.status(201).json({
