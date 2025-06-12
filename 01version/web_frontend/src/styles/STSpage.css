@@ -1,0 +1,114 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f9f9f9;
+}
+
+.sts-container {
+  max-width: 500px;
+  margin: auto;
+  background: #fff;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sts-header {
+  background: #003c5c;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sts-logo {
+  height: 30px;
+}
+
+.chat-icon {
+  font-size: 24px;
+}
+
+.sts-title {
+  text-align: center;
+  padding: 10px;
+}
+
+.sts-title h2 {
+  margin: 0;
+}
+
+.sts-messages {
+  flex: 1;
+  padding: 15px;
+  background: #ffecec;
+  border-radius: 20px;
+  margin: 10px;
+  overflow-y: auto;
+}
+
+.msg-bubble {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 12px;
+  max-width: 70%;
+}
+
+.left {
+  background: #a06bff;
+  color: white;
+  align-self: flex-start;
+}
+
+.right {
+  background: #4285f4;
+  color: white;
+  align-self: flex-end;
+}
+
+.play-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.msg-time {
+  font-size: 12px;
+}
+
+.sts-controls {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  background: white;
+  border-top: 1px solid #ccc;
+}
+
+.record-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #3f51b5;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.send-btn {
+  background: #34a853;
+  border: none;
+  border-radius: 50%;
+  padding: 14px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}

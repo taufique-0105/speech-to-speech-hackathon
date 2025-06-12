@@ -7,7 +7,6 @@ function HomePage() {
 
   return (
     <div>
-      <Header/>
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
         <img src="" alt="" />
         <h1 className="text-4xl font-bold text-indigo-600 mb-8">OdishaVox</h1>
