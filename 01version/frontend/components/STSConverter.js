@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Animated,
 } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -19,6 +20,54 @@ import * as FileSystem from "expo-file-system";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
+const WaveAnimation = () => {
+  const barHeights = [
+    useRef(new Animated.Value(5)).current,
+    useRef(new Animated.Value(5)).current,
+    useRef(new Animated.Value(5)).current,
+    useRef(new Animated.Value(5)).current,
+    useRef(new Animated.Value(5)).current,
+  ];
+
+  useEffect(() => {
+    barHeights.forEach((barHeight, index) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 100),
+          Animated.timing(barHeight, {
+            toValue: 20,
+            duration: 300,
+            useNativeDriver: false,
+          }),
+          Animated.timing(barHeight, {
+            toValue: 5,
+            duration: 300,
+            useNativeDriver: false,
+          }),
+        ])
+      ).start();
+    });
+
+    return () => {
+      barHeights.forEach((barHeight) => barHeight.stopAnimation());
+    };
+  }, []);
+
+  const barStyle = {
+    width: 3,
+    backgroundColor: "white",
+    marginHorizontal: 1,
+  };
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-end", height: 24, marginLeft: 8 }}>
+      {barHeights.map((height, index) => (
+        <Animated.View key={index} style={[barStyle, { height }]} />
+      ))}
+    </View>
+  );
+};
+
 const STSConverter = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUri, setAudioUri] = useState(null);
@@ -28,7 +77,7 @@ const STSConverter = () => {
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const navigation = useNavigation();
-  const flatListRef = useRef(null); // Added ref for FlatList
+  const flatListRef = useRef(null);
 
   const player = useAudioPlayer(null);
   const playerStatus = useAudioPlayerStatus(player);
@@ -142,7 +191,7 @@ const STSConverter = () => {
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
       if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true }); // Scroll to bottom
+        flatListRef.current.scrollToEnd({ animated: true });
       }
     } catch (error) {
       console.error("Stop recording error:", error);
@@ -209,7 +258,7 @@ const STSConverter = () => {
 
       setMessages((prevMessages) => [...prevMessages, newMessage]);
       if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true }); // Scroll to bottom
+        flatListRef.current.scrollToEnd({ animated: true });
       }
       console.log("Processed audio saved at", fileUri);
     } catch (error) {
@@ -249,6 +298,7 @@ const STSConverter = () => {
             color="white"
           />
         </Pressable>
+        {currentlyPlaying === item.uri && <WaveAnimation />}
         <Text style={styles.messageTime}>
           {item.timestamp.toLocaleTimeString([], {
             hour: "2-digit",
@@ -274,7 +324,7 @@ const STSConverter = () => {
           <Text style={styles.subtitle}>Record, convert, and play audio</Text>
           <View style={styles.messagesContainer}>
             <FlatList
-              ref={flatListRef} // Added ref
+              ref={flatListRef}
               data={messages}
               renderItem={renderMessage}
               keyExtractor={(item) => item.id}
