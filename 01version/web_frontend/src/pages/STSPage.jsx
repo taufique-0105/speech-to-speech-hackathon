@@ -36,7 +36,7 @@ function STSPage() {
       <div className="sts-controls">
         <button className="record-btn">
           <FaMicrophone />
-          <span>Start Recording</span>
+          <span>Start Recording ?</span>
         </button>
         <button className="send-btn">
           <FaPaperPlane />
