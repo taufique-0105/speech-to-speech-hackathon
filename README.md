@@ -69,14 +69,9 @@ MONGODB_URI=<MONGODB_CONNECTION_STRING>" > .env
 npm i
 ```
 
-- install nodemon
-```
-npm i -g nodemon
-```
-
 - start dev server
 ```
-nodemon server.js
+npm start
 ```
 
 ### Frontend
