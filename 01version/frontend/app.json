@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "OdishaVox",
-    "slug": "Your Odia Voice Companion",
+    "slug": "OdishaVox",
     "description": "A voice assistant app for Odia speakers, providing local news, weather updates, and more.",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,7 +21,12 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.taufique0105.OdishaVox"
     },
     "web": {
       "favicon": "./assets/logo.png"

@@ -23,7 +23,13 @@ Download the [Windows Installer](https://nodejs.org/en/download) directly from t
 #### Alternative only on windows 11 using `winget`
 
 ```
-winget install OpenJS.NodeJS
+winget install -e --id OpenJS.NodeJS
+```
+- If you facing issues with running `npm` from Powershell
+Start Powershell in Administrator mode and set Execution-Policy to RemoteSigned 
+
+```
+Set-ExecutionPolicy RemoteSigned
 ```
 
 ### Linux using package managers i.e. Ubuntu

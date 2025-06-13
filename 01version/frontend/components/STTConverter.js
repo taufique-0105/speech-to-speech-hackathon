@@ -14,11 +14,14 @@ import {
   AudioModule,
   RecordingPresets,
   useAudioPlayer,
+  useAudioPlayerStatus,
 } from "expo-audio";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const STTConverter = () => {
   const scrollViewRef = useRef();
+  const navigation = useNavigation();
 
   const recordingOptions = {
     ...RecordingPresets.HIGH_QUALITY,
@@ -35,11 +38,19 @@ const STTConverter = () => {
   const [audioUri, setAudioUri] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [transcription, setTranscription] = useState("");
   const [messages, setMessages] = useState([]);
+  const [playingMessageId, setPlayingMessageId] = useState(null);
+  const [currentAudioUri, setCurrentAudioUri] = useState(null);
+
+  const player = useAudioPlayer();
+  const playerStatus = useAudioPlayerStatus(player);
 
   const record = async () => {
     try {
+      setIsPlaying(false);
+      setAudioUri(null);
+      setIsLoading(false);
+      player.pause();
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
       setIsRecording(true);
@@ -61,87 +72,91 @@ const STTConverter = () => {
     }
   };
 
-  const player = useAudioPlayer(audioUri);
-
-  const playAudio = async () => {
-    if (!player || !audioUri || isPlaying) return;
-
+  const playMessageAudio = async (messageId, messageAudioUri) => {
     try {
-      setIsPlaying(true);
-      player.play();
+      if (playingMessageId === messageId) {
+        await player.pause();
+        setPlayingMessageId(null);
+      } else {
+        if (isPlaying || playingMessageId) {
+          await player.pause();
+        }
+        if (currentAudioUri !== messageAudioUri) {
+          await player.replace(messageAudioUri);
+          setCurrentAudioUri(messageAudioUri);
+        }
+        await player.play();
+        setPlayingMessageId(messageId);
+      }
     } catch (error) {
-      console.error("Playback error:", error);
-      Alert.alert("Error", "Failed to play audio");
-    } finally {
-      setIsPlaying(false);
+      console.error("Message audio playback error:", error);
+      Alert.alert("Error", "Failed to play audio message");
     }
   };
 
   const speechToText = async (uri) => {
-  if (!uri) {
-    Alert.alert("Error", "No audio recording available");
-    return;
-  }
-
-  try {
-    setIsLoading(true);
-    setTranscription("");
-
-    // Create form data
-    const formData = new FormData();
-    formData.append('audio', {
-      uri: uri,
-      type: 'audio/wav',  // or 'audio/x-wav'
-      name: 'recording.wav',
-    });
-
-    // Use the full URL from your environment variable directly
-    const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
-    console.log('API URL:', apiUrl);
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to convert speech to text');
+    if (!uri) {
+      Alert.alert("Error", "No audio recording available");
+      return;
     }
-
-    const data = await response.json();
-    
-    if (data.transcript) {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: data.transcript,
-        isUser: false,
+    try {
+      setIsLoading(true);
+      const audioMessage = {
+        id: `audio_${Date.now()}`,
+        audioUri: uri,
+        isUser: true,
+        isAudio: true,
         timestamp: new Date().toLocaleTimeString(),
       };
+      setMessages((prev) => [...prev, audioMessage]);
 
-      setMessages((prev) => [...prev, newMessage]);
-      setTranscription(data.transcript);
-    } else {
-      throw new Error('No transcription received from server');
+      const formData = new FormData();
+      formData.append("audio", {
+        uri: uri,
+        type: "audio/wav",
+        name: "recording.wav",
+      });
+
+      const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
+      console.log("API URL:", apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to convert speech to text");
+      }
+
+      const data = await response.json();
+      if (data.transcript) {
+        const textMessage = {
+          id: `text_${Date.now()}`,
+          text: data.transcript,
+          isUser: false,
+          isAudio: false,
+          timestamp: new Date().toLocaleTimeString(),
+        };
+        setMessages((prev) => [...prev, textMessage]);
+      } else {
+        throw new Error("No transcription received from server");
+      }
+    } catch (error) {
+      console.error("STT Error:", error);
+      Alert.alert("Conversion Error", error.message || "Failed to convert speech to text");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('STT Error:', error);
-    Alert.alert(
-      'Conversion Error',
-      error.message || 'Failed to convert speech to text'
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       try {
         const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -152,129 +167,124 @@ const STTConverter = () => {
         console.error("Permission error:", error);
       }
     })();
-
     return () => {
       mounted = false;
-      // Cleanup audio resources
       audioRecorder?.stopAndUnloadAsync?.();
       player?.stopAsync?.();
     };
   }, []);
 
+  useEffect(() => {
+    if (!playerStatus) return;
+    setIsPlaying(playerStatus.playing);
+    if (playerStatus.didJustFinish) {
+      setIsPlaying(false);
+      setPlayingMessageId(null);
+    }
+  }, [playerStatus]);
+
+  const renderMessage = (message) => {
+    if (message.isAudio) {
+      return (
+        <View
+          key={message.id}
+          style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}
+        >
+          <View style={styles.audioMessageContainer}>
+            <Pressable
+              style={[
+                styles.audioPlayButton,
+                playingMessageId === message.id && styles.playingButton,
+              ]}
+              onPress={() => playMessageAudio(message.id, message.audioUri)}
+            >
+              <MaterialIcons
+                name={playingMessageId === message.id ? "pause" : "play-arrow"}
+                size={20}
+                color={message.isUser ? "#fff" : "#6200ee"}
+              />
+            </Pressable>
+            <View style={styles.audioInfo}>
+              <MaterialIcons
+                name="keyboard-voice"
+                size={20}
+                color={message.isUser ? "#fff" : "#6200ee"}
+                style={styles.audioIcon}
+              />
+              <Text style={[styles.audioLabel, { color: message.isUser ? "#fff" : "#666" }]}>
+                Voice message
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.timestamp}>{message.timestamp}</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View
+          key={message.id}
+          style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}
+        >
+          <Text style={message.isUser ? styles.userText : styles.aiText}>{message.text}</Text>
+          <Text style={styles.timestamp}>{message.timestamp}</Text>
+        </View>
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <MaterialIcons name="arrow-back" size={20} color="#000" />
+      </Pressable>
       <Text style={styles.title}>Speech to Text Converter</Text>
-
       <View style={styles.chatContainer}>
         {messages.length === 0 ? (
           <View style={styles.emptyStateContainer}>
-            <MaterialIcons
-              name="record-voice-over"
-              size={80}
-              color="#6200ee"
-              style={styles.emptyIcon}
-            />
-            <Text style={styles.emptyTitle}>No recordings yet</Text>
-            <Text style={styles.emptySubtitle}>Try these actions: </Text>
-
-            <View style={styles.tipContainer}>
-              <MaterialIcons name="mic" size={20} color="#6200ee" />
-              <Text style={styles.tipText}>
-                Press the red button to start recording
-              </Text>
-            </View>
-
-            <View style={styles.tipContainer}>
-              <MaterialIcons name="play-arrow" size={20} color="#6200ee" />
-              <Text style={styles.tipText}>
-                Play your recordings before converting
-              </Text>
-            </View>
-
-            <View style={styles.samplePrompts}>
-              <Text style={styles.sampleTitle}>Try saying:</Text>
-              <View style={styles.promptBubble}>
-                <Text style={styles.promptText}>
-                  "What's the weather today?"
-                </Text>
-              </View>
-              <View style={styles.promptBubble}>
-                <Text style={styles.promptText}>
-                  "Set a reminder for tomorrow"
-                </Text>
-              </View>
-            </View>
+            <MaterialIcons name="mic" size={48} color="#6200ee" style={styles.emptyIcon} />
+            <Text style={styles.emptyTitle}>No messages yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Press the <Text style={styles.highlightText}>microphone button</Text> below to begin
+            </Text>
           </View>
         ) : (
           <ScrollView
             contentContainerStyle={styles.chatContent}
             ref={scrollViewRef}
-            onContentSizeChange={() =>
-              scrollViewRef.current?.scrollToEnd({ animated: true })
-            }
+            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
           >
-            {messages.map((message) => (
-              <View
-                key={message.id}
-                style={[
-                  styles.messageBubble,
-                  message.isUser ? styles.userBubble : styles.aiBubble,
-                ]}
-              >
-                <Text style={message.isUser ? styles.userText : styles.aiText}>
-                  {message.text + "  "}
-                </Text>
-                <Text style={styles.timestamp}>{message.timestamp}</Text>
-              </View>
-            ))}
+            {messages.map(renderMessage)}
           </ScrollView>
         )}
       </View>
-
       <View style={styles.buttonContainer}>
         <Pressable
-          style={[styles.recordButton, isRecording && styles.recordingActive]}
+          style={({ pressed }) => [
+            styles.recordButton,
+            isRecording && styles.recordingActive,
+            pressed && styles.buttonPressed,
+          ]}
           onPress={isRecording ? stopRecording : record}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>
-            {isRecording ? "⏹ Stop" : "🎤 Record"}
-          </Text>
+          <MaterialIcons name={isRecording ? "stop" : "mic"} size={24} color="#fff" />
         </Pressable>
-
         <Pressable
-          style={[
-            styles.actionButton,
-            (!audioUri || isPlaying) && styles.disabledButton,
-          ]}
-          onPress={playAudio}
-          disabled={!audioUri || isPlaying || isLoading}
-        >
-          <Text style={styles.buttonText}>
-            {isPlaying ? "🔊 Playing..." : "▶️ Play"}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[
+          style={({ pressed }) => [
             styles.actionButton,
             (!audioUri || isLoading) && styles.disabledButton,
+            pressed && styles.buttonPressed,
           ]}
           onPress={() => speechToText(audioUri)}
-          disabled={!audioUri || isLoading}
+          disabled={isPlaying || isRecording}
         >
-          <Text style={styles.buttonText}>
-            {isLoading ? "Processing..." : "🔊 Convert"}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <MaterialIcons name="send" size={30} color="#fff" />
+          )}
         </Pressable>
       </View>
-
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6200ee" />
-          <Text style={styles.loadingText}>Processing audio...</Text>
-        </View>
-      )}
     </View>
   );
 };
@@ -284,6 +294,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
     padding: 16,
+  },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 1,
   },
   emptyStateContainer: {
     flex: 1,
@@ -306,38 +322,9 @@ const styles = StyleSheet.create({
     color: "#757575",
     marginBottom: 20,
   },
-  tipContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8,
-    width: "100%",
-    paddingHorizontal: 20,
-  },
-  tipText: {
-    marginLeft: 10,
-    color: "#333",
-    fontSize: 14,
-  },
-  samplePrompts: {
-    marginTop: 30,
-    width: "100%",
-  },
-  sampleTitle: {
-    fontSize: 16,
+  highlightText: {
     fontWeight: "600",
     color: "#6200ee",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  promptBubble: {
-    backgroundColor: "#f0e5ff",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  promptText: {
-    color: "#6200ee",
-    fontStyle: "italic",
   },
   title: {
     fontSize: 24,
@@ -350,94 +337,108 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     borderRadius: 12,
-    marginBottom: 16,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    overflow: "hidden",
     elevation: 2,
   },
   chatContent: {
-    paddingBottom: 16,
+    padding: 16,
   },
   messageBubble: {
-    maxWidth: "80%",
+    borderRadius: 16,
     padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 12,
+    maxWidth: "80%",
   },
   userBubble: {
-    alignSelf: "flex-end",
     backgroundColor: "#6200ee",
-    borderBottomRightRadius: 2,
+    alignSelf: "flex-end",
+    borderBottomRightRadius: 4,
   },
   aiBubble: {
+    backgroundColor: "#f0f0f0",
     alignSelf: "flex-start",
-    backgroundColor: "#e0e0e0",
-    borderBottomLeftRadius: 2,
+    borderBottomLeftRadius: 4,
   },
   userText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
+    lineHeight: 20,
   },
   aiText: {
     color: "#333",
-    fontSize: 16,
+    fontSize: 15,
+    lineHeight: 20,
   },
   timestamp: {
-    fontSize: 10,
-    color: "#757575",
+    fontSize: 11,
+    color: "#999",
     marginTop: 4,
     textAlign: "right",
   },
+  audioMessageContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 160,
+  },
+  audioPlayButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  playingButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  audioInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  audioIcon: {
+    marginRight: 8,
+  },
+  audioLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+    gap: 24,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
   },
   recordButton: {
-    backgroundColor: "#ff3b30",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    minWidth: 100,
+    backgroundColor: "#6200ee",
+    width: 100,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
     alignItems: "center",
+    elevation: 4,
   },
   recordingActive: {
     backgroundColor: "#d32f2f",
   },
   actionButton: {
-    backgroundColor: "#6200ee",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    minWidth: 100,
-    alignItems: "center",
-  },
-  disabledButton: {
-    backgroundColor: "#9e9e9e",
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  loadingContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "#4CAF50",
+    elevation: 3,
   },
-  loadingText: {
-    marginTop: 16,
-    color: "#fff",
-    fontSize: 16,
+  disabledButton: {
+    opacity: 0.5,
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.95 }],
   },
 });
 

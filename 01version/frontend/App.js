@@ -72,7 +72,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
   },
-  // Additional styles for future use
   shadow: {
     shadowColor: "#000",
     shadowOffset: {
