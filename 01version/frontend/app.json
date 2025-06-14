@@ -24,9 +24,12 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
       ],
-      "package": "com.taufique0105.OdishaVox"
+      "package": "com.taufique0105.OdishaVox",
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/logo.png"

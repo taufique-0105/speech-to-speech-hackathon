@@ -210,8 +210,12 @@ const STSConverter = () => {
     // const host = process.env.EXPO_PUBLIC_URL;
     // const API_URL = new URL("/api/v1/sts", host).toString();
     // console.log(API_URL);
-    const API_URL = "http://15.206.61.50:3000/api/v1/sts"; // Replace with your actual API URL
+    const API_URL = "http://192.168.29.201:3000/api/v1/sts"; // Replace with your actual API URL
 
+    if (!API_URL) {
+      Alert.alert("Error", "API URL is not defined. Please check your configuration.", API_URL);
+      return;
+    }
     try {
       setIsLoading(true);
       console.log("Processing audio:", audioUri);
