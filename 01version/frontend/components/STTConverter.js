@@ -117,8 +117,9 @@ const STTConverter = () => {
         name: "recording.wav",
       });
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
-      console.log("API URL:", apiUrl);
+      // const apiUrl = `${process.env.EXPO_PUBLIC_URL}/api/v1/stt`;
+      // console.log("API URL:", apiUrl);
+      const apiUrl = "http://15.206.61.50:3000/api/v1/stt"; // Replace with your actual API URL
 
       const response = await fetch(apiUrl, {
         method: "POST",

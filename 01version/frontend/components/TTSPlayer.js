@@ -60,8 +60,9 @@ const TTSComponent = ({ initialText = "" }) => {
     }
 
     setLoading(true);
-    const host = process.env.EXPO_PUBLIC_URL;
-    const URI = new URL("/api/v1/tts", host).toString();
+    // const host = process.env.EXPO_PUBLIC_URL;
+    // const URI = new URL("/api/v1/tts", host).toString();
+    const URI = "http://15.206.61.50:3000/api/v1/tts"; // Replace with your actual API URL
 
     try {
       const newUserMessage = {

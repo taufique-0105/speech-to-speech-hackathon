@@ -207,9 +207,10 @@ const STSConverter = () => {
       Alert.alert("No Audio", "Please record an audio file first.");
       return;
     }
-    const host = process.env.EXPO_PUBLIC_URL;
-    const API_URL = new URL("/api/v1/sts", host).toString();
-    console.log(API_URL);
+    // const host = process.env.EXPO_PUBLIC_URL;
+    // const API_URL = new URL("/api/v1/sts", host).toString();
+    // console.log(API_URL);
+    const API_URL = "http://15.206.61.50:3000/api/v1/sts"; // Replace with your actual API URL
 
     try {
       setIsLoading(true);
