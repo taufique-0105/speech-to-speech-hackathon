@@ -14,7 +14,20 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs microphone access for voice commands",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "15.206.61.50": {
+              "NSIncludesSubdomains": true,
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      },
+      "bundleIdentifier": "com.taufique0105.OdishaVox"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,10 +39,12 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "package": "com.taufique0105.OdishaVox",
-      "usesCleartextTraffic": true
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/logo.png"
@@ -38,14 +53,28 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for voice commands."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "extraMavenRepos": ["https://jitpack.io"],
+            "usesCleartextTraffic": true
+          },
+          "ios": {
+            "useFrameworks": "static"
+          }
         }
       ]
     ],
     "extra": {
       "eas": {
         "projectId": "c5725970-f055-4325-adbd-f58217e9b34f"
-      }
+      },
+      "apiUrl": "http://15.206.61.50:3000/api/v1/tts"
     }
   }
 }

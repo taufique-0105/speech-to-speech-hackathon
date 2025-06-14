@@ -1,26 +1,46 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { checkNetworkStatus } from '../utils/network';
-import * as Network from 'expo-network';
+import NetInfo from '@react-native-community/netinfo';
+import { AppState } from 'react-native';
 
 export const NetworkContext = createContext();
 
 export const NetworkProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(true);
+  const [isInternetReachable, setIsInternetReachable] = useState(true);
+
+  const updateNetworkStatus = async () => {
+    const status = await NetInfo.fetch();
+    setIsConnected(status.isConnected);
+    setIsInternetReachable(status.isInternetReachable);
+  };
 
   useEffect(() => {
     // Initial check
-    checkNetworkStatus().then(status => setIsConnected(status));
+    updateNetworkStatus();
 
     // Subscribe to network changes
-    const unsubscribe = Network.addNetworkStateListener(state => {
-      setIsConnected(state.isInternetReachable);
+    const unsubscribeNetInfo = NetInfo.addEventListener(updateNetworkStatus);
+
+    // Subscribe to app state changes
+    const unsubscribeAppState = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        updateNetworkStatus();
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeNetInfo();
+      unsubscribeAppState.remove();
+    };
   }, []);
 
   return (
-    <NetworkContext.Provider value={{ isConnected }}>
+    <NetworkContext.Provider value={{ 
+      isConnected, 
+      isInternetReachable,
+      refreshNetworkStatus: updateNetworkStatus 
+    }}>
       {children}
     </NetworkContext.Provider>
   );

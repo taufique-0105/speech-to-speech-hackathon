@@ -1,9 +1,8 @@
-import * as Network from 'expo-network';
-import { Alert } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 export const checkNetworkStatus = async (showAlert = false) => {
   try {
-    const status = await Network.getNetworkStateAsync();
+    const status = await NetInfo.fetch();
     
     if (showAlert && !status.isInternetReachable) {
       Alert.alert(
@@ -12,7 +11,10 @@ export const checkNetworkStatus = async (showAlert = false) => {
       );
     }
     
-    return status.isInternetReachable;
+    return {
+      isConnected: status.isConnected,
+      isInternetReachable: status.isInternetReachable
+    };
   } catch (error) {
     console.error("Network check error:", error);
     if (showAlert) {
@@ -21,6 +23,9 @@ export const checkNetworkStatus = async (showAlert = false) => {
         "Unable to verify network connection. Some features may not work properly."
       );
     }
-    return false;
+    return {
+      isConnected: false,
+      isInternetReachable: false
+    };
   }
 };

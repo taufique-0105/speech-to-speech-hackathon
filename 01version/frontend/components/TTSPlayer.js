@@ -98,7 +98,7 @@ const TTSComponent = ({ initialText = "" }) => {
     if (!networkStatus?.isConnected) {
       Alert.alert(
         "No Internet Connection",
-        "Please check your internet connection and try again.",
+        "Please check your internet connection and try again. Inside TTSConverter",
         [
           {
             text: "Check Connection",
@@ -110,7 +110,7 @@ const TTSComponent = ({ initialText = "" }) => {
     }
 
     setLoading(true);
-    const URI = "http://192.168.29.201:3000/api/v1/tts"; // Replace with your actual API URL
+    const URI = "http://15.206.61.50:3000/api/v1/tts"; // Replace with your actual API URL
 
     if (!URI) {
       Alert.alert(
