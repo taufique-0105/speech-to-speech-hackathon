@@ -18,6 +18,7 @@ import * as FileSystem from "expo-file-system";
 import { useAudioPlayer } from "expo-audio";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as Network from 'expo-network';
 
 const TTSComponent = ({ initialText = "" }) => {
   const [text, setText] = useState(initialText);
@@ -26,6 +27,7 @@ const TTSComponent = ({ initialText = "" }) => {
   const [selectedLanguage, setSelectedLanguage] = useState("en-IN");
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [networkStatus, setNetworkStatus] = useState(null);
   const flatListRef = useRef(null);
   const navigation = useNavigation();
 
@@ -46,6 +48,10 @@ const TTSComponent = ({ initialText = "" }) => {
   ];
 
   useEffect(() => {
+    checkNetworkStatus();
+  }, []);
+
+  useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
       setTimeout(() => {
         flatListRef.current.scrollToEnd({ animated: true });
@@ -53,15 +59,67 @@ const TTSComponent = ({ initialText = "" }) => {
     }
   }, [messages]);
 
+  const checkNetworkStatus = async () => {
+    try {
+      const status = await Network.getNetworkStateAsync();
+      setNetworkStatus(status);
+      if (!status.isConnected) {
+        Alert.alert(
+          "No Internet Connection",
+          "Please check your internet connection and try again."
+        );
+      }
+    } catch (error) {
+      console.error("Network check error:", error);
+      Alert.alert(
+        "Network Error",
+        "Unable to check network status. Some features may not work properly."
+      );
+    }
+  };
+
   const fetchTTS = async () => {
+    // Check for empty input
     if (!text.trim()) {
       Alert.alert("Input Required", "Please enter some text to convert");
       return;
     }
 
+    // Check input length (API might have limits)
+    if (text.length > 1000) {
+      Alert.alert(
+        "Text Too Long",
+        "Please keep your text under 1000 characters for optimal performance."
+      );
+      return;
+    }
+
+    // Check network connection
+    if (!networkStatus?.isConnected) {
+      Alert.alert(
+        "No Internet Connection",
+        "Please check your internet connection and try again. Inside TTSConverter",
+        [
+          {
+            text: "Check Connection",
+            onPress: checkNetworkStatus
+          }
+        ]
+      );
+      return;
+    }
+
     setLoading(true);
-    const host = process.env.EXPO_PUBLIC_URL;
-    const URI = new URL("/api/v1/tts", host).toString();
+    const URI = "http://15.206.61.50:3000/api/v1/tts"; // Replace with your actual API URL
+
+    if (!URI) {
+      Alert.alert(
+        "Configuration Error",
+        "API URL is not defined. Please check your configuration."
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
       const newUserMessage = {
@@ -71,6 +129,16 @@ const TTSComponent = ({ initialText = "" }) => {
         language: getLanguageName(selectedLanguage),
       };
       setMessages((prev) => [...prev, newUserMessage]);
+
+      // Check if the URI is reachable
+      try {
+        const networkResponse = await fetch(URI, { method: 'HEAD' });
+        if (!networkResponse.ok) {
+          throw new Error(`Server not reachable (Status: ${networkResponse.status})`);
+        }
+      } catch (error) {
+        throw new Error(`Server not reachable: ${error.message}`);
+      }
 
       const response = await fetch(URI, {
         method: "POST",
@@ -82,22 +150,38 @@ const TTSComponent = ({ initialText = "" }) => {
       });
 
       if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || 
+          `Server responded with ${response.status}: ${response.statusText}`
+        );
       }
 
       const data = await response.json();
 
       if (!data.audios?.[0]) {
-        throw new Error("No audio data received");
+        throw new Error(
+          data.message || "No audio data received from the server"
+        );
       }
 
       const timestamp = Date.now();
       const fileName = `tts-${timestamp}.wav`;
       const fileUri = FileSystem.cacheDirectory + fileName;
 
-      await FileSystem.writeAsStringAsync(fileUri, data.audios[0], {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      try {
+        await FileSystem.writeAsStringAsync(fileUri, data.audios[0], {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } catch (fileError) {
+        throw new Error(`Failed to save audio file: ${fileError.message}`);
+      }
+
+      // Verify the file was created
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (!fileInfo.exists) {
+        throw new Error("Audio file was not created successfully");
+      }
 
       setAudioUri(fileUri);
 
@@ -112,31 +196,78 @@ const TTSComponent = ({ initialText = "" }) => {
       setText("");
     } catch (error) {
       console.error("TTS Error:", error);
+      
+      let errorMessage = error.message || "Failed to generate audio";
+      
+      // Handle specific error cases
+      if (error.message.includes("Network request failed")) {
+        errorMessage = "Network request failed. Please check your internet connection.";
+      } else if (error.message.includes("Server not reachable")) {
+        errorMessage = "Could not connect to the TTS service. Please try again later.";
+      } else if (error.message.includes("Failed to save audio file")) {
+        errorMessage = "Failed to save the audio file. Please check storage permissions.";
+      }
+
       Alert.alert(
         "Conversion Error",
-        error.message || "Failed to generate audio"
+        errorMessage,
+        [
+          {
+            text: "Retry",
+            onPress: fetchTTS,
+            style: "default"
+          },
+          {
+            text: "OK",
+            style: "cancel"
+          }
+        ]
       );
 
-      const errorMessage = {
+      const errorMessageObj = {
         id: Date.now() + 1,
-        text: "Failed to generate audio",
+        text: errorMessage,
         isUser: false,
         isError: true,
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessageObj]);
     } finally {
       setLoading(false);
     }
   };
 
   const handlePlay = async (uri) => {
-    if (!uri) return;
+    if (!uri) {
+      Alert.alert("Playback Error", "No audio file to play");
+      return;
+    }
 
     try {
+      // Check if file exists
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (!fileInfo.exists) {
+        throw new Error("Audio file not found");
+      }
+
+      // Check file size to ensure it's valid
+      if (fileInfo.size < 100) { // Assuming audio files should be >100 bytes
+        throw new Error("Audio file appears to be corrupted or empty");
+      }
+
       player.replace(uri);
-      player.play();
+      await player.play();
     } catch (error) {
       console.error("Playback Error: ", error);
+      Alert.alert(
+        "Playback Error",
+        error.message || "Failed to play the audio file",
+        [
+          {
+            text: "Try Again",
+            onPress: () => handlePlay(uri)
+          }
+        ]
+      );
     }
   };
 
@@ -354,6 +485,10 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+    color: "#000",
+  },
+  userMessageText: {
+    color: "#fff",
   },
   languageTag: {
     fontSize: 12,
