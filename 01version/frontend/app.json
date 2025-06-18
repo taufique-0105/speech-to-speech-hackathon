@@ -3,7 +3,7 @@
     "name": "OdishaVox",
     "slug": "OdishaVox",
     "description": "A voice assistant app for Odia speakers, providing local news, weather updates, and more.",
-    "version": "1.0.0",
+    "version": "0.1.0+fb21c52",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",

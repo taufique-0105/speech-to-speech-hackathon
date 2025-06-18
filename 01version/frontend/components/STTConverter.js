@@ -128,8 +128,9 @@ const STTConverter = () => {
         method: "POST",
         body: formData,
         headers: {
-          Accept: "application/json",
+          "Accept": "application/json",
           "Content-Type": "multipart/form-data",
+          "user-agent": "OdishaVoxApp/0.1.0 (Android/Linux; ARMv8; Android 10; Build/18-06-2025)",
         },
       });
 

@@ -18,7 +18,7 @@ import * as FileSystem from "expo-file-system";
 import { useAudioPlayer } from "expo-audio";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import * as Network from 'expo-network';
+import * as Network from "expo-network";
 
 const TTSComponent = ({ initialText = "" }) => {
   const [text, setText] = useState(initialText);
@@ -102,8 +102,8 @@ const TTSComponent = ({ initialText = "" }) => {
         [
           {
             text: "Check Connection",
-            onPress: checkNetworkStatus
-          }
+            onPress: checkNetworkStatus,
+          },
         ]
       );
       return;
@@ -132,9 +132,11 @@ const TTSComponent = ({ initialText = "" }) => {
 
       // Check if the URI is reachable
       try {
-        const networkResponse = await fetch(URI, { method: 'HEAD' });
+        const networkResponse = await fetch(URI, { method: "HEAD" });
         if (!networkResponse.ok) {
-          throw new Error(`Server not reachable (Status: ${networkResponse.status})`);
+          throw new Error(
+            `Server not reachable (Status: ${networkResponse.status})`
+          );
         }
       } catch (error) {
         throw new Error(`Server not reachable: ${error.message}`);
@@ -142,7 +144,11 @@ const TTSComponent = ({ initialText = "" }) => {
 
       const response = await fetch(URI, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "user-agent":
+            "OdishaVoxApp/0.1.0 (Android/Linux; ARMv8; Android 10; Build/18-06-2025)",
+        },
         body: JSON.stringify({
           text: text.trim(),
           target_language_code: selectedLanguage,
@@ -152,8 +158,8 @@ const TTSComponent = ({ initialText = "" }) => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.message || 
-          `Server responded with ${response.status}: ${response.statusText}`
+          errorData.message ||
+            `Server responded with ${response.status}: ${response.statusText}`
         );
       }
 
@@ -196,33 +202,32 @@ const TTSComponent = ({ initialText = "" }) => {
       setText("");
     } catch (error) {
       console.error("TTS Error:", error);
-      
+
       let errorMessage = error.message || "Failed to generate audio";
-      
+
       // Handle specific error cases
       if (error.message.includes("Network request failed")) {
-        errorMessage = "Network request failed. Please check your internet connection.";
+        errorMessage =
+          "Network request failed. Please check your internet connection.";
       } else if (error.message.includes("Server not reachable")) {
-        errorMessage = "Could not connect to the TTS service. Please try again later.";
+        errorMessage =
+          "Could not connect to the TTS service. Please try again later.";
       } else if (error.message.includes("Failed to save audio file")) {
-        errorMessage = "Failed to save the audio file. Please check storage permissions.";
+        errorMessage =
+          "Failed to save the audio file. Please check storage permissions.";
       }
 
-      Alert.alert(
-        "Conversion Error",
-        errorMessage,
-        [
-          {
-            text: "Retry",
-            onPress: fetchTTS,
-            style: "default"
-          },
-          {
-            text: "OK",
-            style: "cancel"
-          }
-        ]
-      );
+      Alert.alert("Conversion Error", errorMessage, [
+        {
+          text: "Retry",
+          onPress: fetchTTS,
+          style: "default",
+        },
+        {
+          text: "OK",
+          style: "cancel",
+        },
+      ]);
 
       const errorMessageObj = {
         id: Date.now() + 1,
@@ -250,7 +255,8 @@ const TTSComponent = ({ initialText = "" }) => {
       }
 
       // Check file size to ensure it's valid
-      if (fileInfo.size < 100) { // Assuming audio files should be >100 bytes
+      if (fileInfo.size < 100) {
+        // Assuming audio files should be >100 bytes
         throw new Error("Audio file appears to be corrupted or empty");
       }
 
@@ -264,8 +270,8 @@ const TTSComponent = ({ initialText = "" }) => {
         [
           {
             text: "Try Again",
-            onPress: () => handlePlay(uri)
-          }
+            onPress: () => handlePlay(uri),
+          },
         ]
       );
     }
@@ -334,13 +340,21 @@ const TTSComponent = ({ initialText = "" }) => {
         </TouchableOpacity>
 
         <View style={styles.displayContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessage}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.messagesList}
-          />
+          {messages.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No messages yet. Enter text below and press the send button to convert it to speech in your selected language.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessage}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.messagesList}
+            />
+          )}
         </View>
 
         <Modal
@@ -455,6 +469,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     padding: 10,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#7f8c8d",
+    textAlign: "center",
+    lineHeight: 24,
   },
   messagesList: {
     paddingBottom: 10,
