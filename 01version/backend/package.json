@@ -1,8 +1,8 @@
 {
   "name": "backend",
-  "version": "1.0.0",
+  "version": "0.1.0-pre",
   "type": "module",
-  "description": "First demo version of OdishaVox backend",
+  "description": "OdishaVox backend Pre-Alpha version",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
